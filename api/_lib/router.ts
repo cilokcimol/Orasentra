@@ -26,7 +26,7 @@ const num = (v: unknown) => (typeof v === 'number' ? v : Number(v))
 
 function myMemories(k: Keeper, recent: MemoryRecord[]) {
   const mine = new Set([keeperNs(k.id), ...k.pocket.groups.map(pocket.groupNs)])
-  return recent.filter(r => mine.has(r.ns)).slice(0, 80).map(r => ({ ...r, url: r.blobId ? walrusBlobUrl(r.blobId) : undefined }))
+  return recent.filter(r => mine.has(r.ns)).slice(0, 80).map(r => ({ ...r, url: r.blobId && r.mode !== 'mock' ? walrusBlobUrl(r.blobId) : undefined }))
 }
 
 function publicStats(s: Awaited<ReturnType<typeof memoryStats>>) {
@@ -37,7 +37,7 @@ function publicStats(s: Awaited<ReturnType<typeof memoryStats>>) {
     keepers: s.namespaces.filter(n => !n.startsWith('hc-g-')).length,
     pots: s.namespaces.filter(n => n.startsWith('hc-g-')).length,
     latest: s.recent
-      .filter(r => r.status === 'stored' && r.blobId)
+      .filter(r => r.status === 'stored' && r.blobId && r.mode !== 'mock')
       .slice(0, 12)
       .map(r => ({ room: r.room, kind: r.kind, at: r.at, blobId: r.blobId, url: walrusBlobUrl(r.blobId!) })),
   }
