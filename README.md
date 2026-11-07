@@ -24,10 +24,11 @@ No sign up: the browser creates a private memory key; the server stores only its
 
 ## How Tatum is used
 
-All Sui mainnet reads go through `https://sui-mainnet.gateway.tatum.io`:
+All Sui mainnet reads go through the Tatum gateway, using Sui's gRPC API (`sui.rpc.v2`) at `sui-mainnet-grpc.gateway.tatum.io`:
 
-- `sui_getObject` on the Cetus USDC/SUI pool, to price SUI from its sqrt price and settle the onchain questions
-- `suix_queryTransactionBlocks` with balance changes, from and to the watched address, for Watch
+- `LedgerService.GetObject` on the Cetus USDC/SUI pool, to price SUI from its sqrt price and settle the onchain questions
+- `LedgerService.ListTransactions` filtered by affected address, with balance changes, for the Sentinel
+- `LedgerService.GetServiceInfo` and `StateService.ListBalances` for chain status and balances
 - reads are counted and shown on the judge page
 
 ## Run it

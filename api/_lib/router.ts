@@ -65,21 +65,6 @@ export async function handle(req: Request): Promise<Response> {
       const [mem, s, t] = await Promise.all([memoryHealth(), memoryStats(), read('tatum/stats.json', { total: 0 })])
       return json({ memory: mem, memoryMode: memoryMode(), tatum: tatumReady(), tatumCalls: t, tatumMethods: tatumMethods(), llm: Boolean(env.geminiKey), demoAddress: env.demoAddress || null, demoKey: /^[a-f0-9]{32,64}$/.test(env.demoKey) ? env.demoKey : null, stats: publicStats(s) })
     }
-    if (path === 'diag/tatum') {
-      const tatum = await import('./tatum.js')
-      const out: Record<string, string> = {}
-      const run = async (n: string, f: () => Promise<unknown>) => {
-        try {
-          out[n] = `ok ${JSON.stringify(await f()).slice(0, 160)}`
-        } catch (e) {
-          out[n] = String((e as Error).message).slice(0, 160)
-        }
-      }
-      await run('checkpoint', () => tatum.checkpoint())
-      await run('price', () => tatum.suiPrice())
-      if (env.demoAddress) await run('txs', async () => (await tatum.recentTxs(env.demoAddress, 5)).map(t => [t.digest.slice(0, 8), t.balanceChanges?.length]))
-      return json(out)
-    }
     if (path === 'board') {
       const b = await calls.board()
       const price = await calls.samplePrice()
