@@ -36,7 +36,7 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
               <input id="addr" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x…" value="${esc(w?.address || '')}" />
               <button class="btn watch" type="submit">${w?.address ? 'Check for new payments' : 'Start watching'}</button>
             </div>
-            <span class="hint">Read only. Hindcast never asks for keys and never moves money.${demo && !w?.address ? ` <button class="chip" type="button" id="use-demo">Use the demo wallet</button>` : ''}</span>
+            <span class="hint">Read only. Mnemora never asks for keys and never moves money.${demo && !w?.address ? ` <button class="chip" type="button" id="use-demo">Use the demo wallet</button>` : ''}</span>
           </div>
         </form>
         ${
@@ -93,7 +93,7 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
         </div>
         <div class="panel flat">
           <h3>Ask about your spending</h3>
-          <p class="sub">Try "What did I spend last Tuesday?" Hindcast answers from the payments it has seen and from memory.</p>
+          <p class="sub">Try "What did I spend last Tuesday?" Mnemora answers from the payments it has seen and from memory.</p>
           <button class="btn ghost small" type="button" id="ask-tue">Ask it now</button>
         </div>
       </aside>
@@ -110,7 +110,7 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
     const res = await act(btn, () => api('watch/scan', { address }))
     if (res) {
       const r = res.result
-      toast(r.firstScan ? 'Baseline set. Hindcast will compare future payments against it.' : `${r.fresh} new payments, ${r.alerts.length} to review.`)
+      toast(r.firstScan ? 'Baseline set. Mnemora will compare future payments against it.' : `${r.fresh} new payments, ${r.alerts.length} to review.`)
       ctx.apply(res, 'watch')
     }
   })

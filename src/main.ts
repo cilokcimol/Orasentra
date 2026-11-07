@@ -75,7 +75,7 @@ async function route(scrollTop = true) {
   }
   const view = views[room] || renderHome
   const titles: Record<string, string> = { calls: 'Calls', watch: 'Watch', pocket: 'Pocket', ledger: 'Ledger', judge: 'For judges' }
-  document.title = titles[room] ? `${titles[room]} · Hindcast` : 'Hindcast'
+  document.title = titles[room] ? `${titles[room]} · Mnemora` : 'Mnemora'
   const out = view(app, ctx, rest)
   if (typeof out === 'function') cleanup = out
   if (changed && scrollTop) {

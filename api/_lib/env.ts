@@ -9,7 +9,7 @@ export const env = {
   geminiKey: process.env.GEMINI_API_KEY || '',
   geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   blobToken: process.env.BLOB_READ_WRITE_TOKEN || '',
-  dataDir: process.env.HINDCAST_DATA_DIR || 'server/data',
+  dataDir: process.env.MNEMORA_DATA_DIR || 'server/data',
   demoAddress: process.env.DEMO_SUI_ADDRESS || '',
   demoKey: process.env.DEMO_KEEPER_KEY || '',
 }

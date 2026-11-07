@@ -34,7 +34,7 @@ export function renderHome(app: HTMLElement, ctx: Ctx) {
     <section class="hero">
       <div class="hero-copy">
         <h1 class="display">Hindsight,<span class="line2">kept.</span></h1>
-        <p class="lede">Hindcast is one agent with one long memory. It remembers every call you make before a game or a vote, every payment that leaves your wallet, and every debt in your group. Then it learns who to trust, what is normal for you, and how much you can really save.</p>
+        <p class="lede">Mnemora is one agent with one long memory. It remembers every call you make before a game or a vote, every payment that leaves your wallet, and every debt in your group. Then it learns who to trust, what is normal for you, and how much you can really save.</p>
         <div class="cta">
           <a class="btn calls" href="#/calls">Make a call</a>
           <a class="btn ghost" href="#/judge">Check the proof</a>
@@ -51,13 +51,13 @@ export function renderHome(app: HTMLElement, ctx: Ctx) {
     <section class="section">
       <div class="section-head">
         <h2>One memory, three rooms</h2>
-        <p class="lede">Each room is useful on its own. Together they share what Hindcast has learned about you.</p>
+        <p class="lede">Each room is useful on its own. Together they share what Mnemora has learned about you.</p>
       </div>
       <div class="rooms">
         <a class="room-row" href="#/calls" style="--c: var(--calls)">
           <div><div class="room-name">Calls</div><p class="track">Markets and sports prediction</p></div>
-          <p>Log your pick before a match, an election or a market move. Hindcast puts it beside the Polymarket odds and the live SUI price, flags when sources disagree, then scores every voice after the result. Trust is earned only by beating the baseline.</p>
-          <blockquote>Scorecard for "Will SUI trade above $0.86": it resolved Above. Brier scores, lower is better: Rina 0.090, You 0.144, Onchain 0.250. Hindcast now trusts: Rina 0.61, You 0.55.<cite>Example of a scorecard memory</cite></blockquote>
+          <p>Log your pick before a match, an election or a market move. Mnemora puts it beside the Polymarket odds and the live SUI price, flags when sources disagree, then scores every voice after the result. Trust is earned only by beating the baseline.</p>
+          <blockquote>Scorecard for "Will SUI trade above $0.86": it resolved Above. Brier scores, lower is better: Rina 0.090, You 0.144, Onchain 0.250. Mnemora now trusts: Rina 0.61, You 0.55.<cite>Example of a scorecard memory</cite></blockquote>
         </a>
         <a class="room-row" href="#/watch" style="--c: var(--watch)">
           <div><div class="room-name">Watch</div><p class="track">Smart agent for real life</p></div>

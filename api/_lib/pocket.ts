@@ -28,7 +28,7 @@ export interface Group {
 }
 
 const rid = () => randomBytes(5).toString('hex')
-export const groupNs = (id: string) => `hc-g-${id}`
+export const groupNs = (id: string) => `mn-g-${id}`
 const clean = (s: string, n = 28) => s.replace(/[^\p{L}\p{N} .,&'()_]/gu, '').trim().slice(0, n)
 
 export async function loadGroup(id: string): Promise<Group> {

@@ -12,7 +12,7 @@ export function credibility(v: Pick<VoiceStats, 'n' | 'brierSum' | 'baseSum'>): 
   return Math.min(0.95, Math.max(0.05, 0.5 + edge * 2.2 * shrink))
 }
 
-/** Weights for the Hindcast blend. Squared credibility so proven voices pull harder. */
+/** Weights for the Mnemora blend. Squared credibility so proven voices pull harder. */
 export function weights(creds: Record<string, number>): Record<string, number> {
   const entries = Object.entries(creds)
   const raw = entries.map(([k, c]) => [k, Math.max(0.0025, c * c)] as const)

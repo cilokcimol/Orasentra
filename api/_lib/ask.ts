@@ -1,4 +1,4 @@
-// Ask Hindcast anything. Answers come from what it remembers on Walrus, plus exact numbers it can compute.
+// Ask Mnemora anything. Answers come from what it remembers on Walrus, plus exact numbers it can compute.
 
 import { env } from './env.js'
 import { recall, type Recalled } from './memory.js'
@@ -72,7 +72,7 @@ export async function ask(k: Keeper, question: string) {
   const memories = found.sort((a, b) => a.distance - b.distance).slice(0, 6)
 
   const llm = await gemini(
-    `You are Hindcast, a calm money and forecasting assistant with long term memory. Answer the user's question in at most 4 short sentences, in the user's language. Use only the facts and memories below. If they do not answer it, say what you would need. No emoji.\n\nQuestion: ${q}\n\nComputed facts:\n${facts.join('\n') || 'none'}\n\nMemories from Walrus:\n${memories.map((m, i) => `${i + 1}. ${m.text}`).join('\n') || 'none'}`,
+    `You are Mnemora, a calm money and forecasting assistant with long term memory. Answer the user's question in at most 4 short sentences, in the user's language. Use only the facts and memories below. If they do not answer it, say what you would need. No emoji.\n\nQuestion: ${q}\n\nComputed facts:\n${facts.join('\n') || 'none'}\n\nMemories from Walrus:\n${memories.map((m, i) => `${i + 1}. ${m.text}`).join('\n') || 'none'}`,
   )
   const answer =
     llm ||

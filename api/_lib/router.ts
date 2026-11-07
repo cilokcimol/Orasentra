@@ -34,8 +34,8 @@ function publicStats(s: Awaited<ReturnType<typeof memoryStats>>) {
     total: s.total,
     stored: s.stored,
     byRoom: s.byRoom,
-    keepers: s.namespaces.filter(n => !n.startsWith('hc-g-')).length,
-    pots: s.namespaces.filter(n => n.startsWith('hc-g-')).length,
+    keepers: s.namespaces.filter(n => !n.startsWith('mn-g-')).length,
+    pots: s.namespaces.filter(n => n.startsWith('mn-g-')).length,
     latest: s.recent
       .filter(r => r.status === 'stored' && r.blobId && r.mode !== 'mock')
       .slice(0, 12)

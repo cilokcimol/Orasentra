@@ -17,7 +17,7 @@ export function renderJudge(app: HTMLElement, ctx: Ctx) {
   <section>
     <div class="room-head" style="--c: var(--melt)">
       <div><span class="tag">For Total Recall reviewers</span><h1 class="display">The proof</h1><p class="lede">Each requirement, checked live against this deployment. Nothing on this page is typed in by hand.</p></div>
-      <div class="row">${h?.demoKey ? (keeperKey() === h.demoKey ? `<button class="btn ghost" type="button" id="mine">Back to my own memory</button>` : `<button class="btn" type="button" id="demo">Open the shared demo memory</button>`) : ''}<a class="btn ghost" href="https://github.com/cilokcimol/hindcast">Read the code</a></div>
+      <div class="row">${h?.demoKey ? (keeperKey() === h.demoKey ? `<button class="btn ghost" type="button" id="mine">Back to my own memory</button>` : `<button class="btn" type="button" id="demo">Open the shared demo memory</button>`) : ''}<a class="btn ghost" href="https://github.com/cilokcimol/mnemora">Read the code</a></div>
     </div>
     <ol class="checks">
       <li>${mark(h ? mainnet : undefined)}<div><h3>Walrus Memory writes on mainnet</h3><p>${h ? (mainnet ? `The server is connected to the mainnet relayer, health ${h.memory?.ok ? 'ok' : 'failing'}.` : `The server is in ${esc(h.memoryMode)} mode because the mainnet key is not set.`) : 'Checking…'}</p></div><a class="btn small ghost" href="#/ledger">See memories</a></li>
@@ -26,7 +26,7 @@ export function renderJudge(app: HTMLElement, ctx: Ctx) {
       <li>${mark(pmOpen > 0 || onchain > 0)}<div><h3>Markets and sports prediction</h3><p>${pmOpen} open Polymarket questions across sports, elections, culture and crypto, plus ${onchain} SUI questions settled from the chain. Picks lock before the event; every voice is scored with Brier; trust lives in memory.</p></div><a class="btn small ghost" href="#/calls">Open Calls</a></li>
       <li>${mark(true)}<div><h3>Smart agent for real life</h3><p>Watch reads a wallet, flags spikes, new payees and limits, learns escalation rules from your answers, finds subscriptions, and resumes from the last check on any device.</p></div><a class="btn small ghost" href="#/watch">Open Watch</a></li>
       <li>${mark(true)}<div><h3>Consumer finance, blockchain invisible</h3><p>Shared pots typed in plain words with a settle up plan, goals that re plan from real cash flow, and learned subscription limits. No wallet needed.</p></div><a class="btn small ghost" href="#/pocket">Open Pocket</a></li>
-      <li>${mark(true)}<div><h3>It learns over time</h3><p>The Ledger shows trust moving after each result, rules forming from answers, and plans changing, each tied to a Walrus memory. Ask Hindcast reads them back by meaning.</p></div><a class="btn small ghost" href="#/ledger">Open Ledger</a></li>
+      <li>${mark(true)}<div><h3>It learns over time</h3><p>The Ledger shows trust moving after each result, rules forming from answers, and plans changing, each tied to a Walrus memory. Ask Mnemora reads them back by meaning.</p></div><a class="btn small ghost" href="#/ledger">Open Ledger</a></li>
     </ol>
     <div class="section">
       <div class="proof">

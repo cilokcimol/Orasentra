@@ -34,14 +34,14 @@ export function renderLedger(app: HTMLElement, ctx: Ctx) {
   app.innerHTML = `
   <section data-view="ledger">
     <div class="room-head" style="--c: var(--melt)">
-      <div><span class="tag">How it learned over time</span><h1 class="display">Ledger</h1><p class="lede">Everything Hindcast has remembered for you, in order, with a link to each memory on Walrus. This is the record it leans on.</p></div>
+      <div><span class="tag">How it learned over time</span><h1 class="display">Ledger</h1><p class="lede">Everything Mnemora has remembered for you, in order, with a link to each memory on Walrus. This is the record it leans on.</p></div>
       <p class="small muted">${mems.length} memories in your namespace, ${stored} confirmed on Walrus.</p>
     </div>
     <div class="cols">
       <div>
         <div class="panel" style="margin-bottom:18px">
           <h3>Trust over time</h3>
-          <p class="sub">How much Hindcast relies on each voice in Calls, after every scored result.</p>
+          <p class="sub">How much Mnemora relies on each voice in Calls, after every scored result.</p>
           ${trustChart(k?.trust || [])}
         </div>
         <h3 style="margin-bottom:6px">What it learned</h3>

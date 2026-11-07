@@ -1,6 +1,6 @@
 // Shared browser helpers: the keeper key, the API client, formatting, small UI pieces.
 
-const KEY = 'hindcast.key'
+const KEY = 'mnemora.key'
 
 export function keeperKey(): string {
   let k = ''
@@ -44,10 +44,10 @@ export class ApiError extends Error {}
 export async function api<T = any>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api/${path}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json', 'x-hindcast-key': keeperKey() },
+    headers: { 'content-type': 'application/json', 'x-mnemora-key': keeperKey() },
     body: body === undefined ? undefined : JSON.stringify(body),
   }).catch(() => null)
-  if (!res) throw new ApiError('Could not reach Hindcast. Check your connection and try again.')
+  if (!res) throw new ApiError('Could not reach Mnemora. Check your connection and try again.')
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status}).`)
   return data as T

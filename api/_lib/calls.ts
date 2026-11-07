@@ -202,28 +202,28 @@ export async function logPick(k: Keeper, qid: string, you: number, friends: Reco
   for (const [n, kind] of Object.entries(auto.kinds)) voice(k, n, kind)
   for (const [rawName, p] of Object.entries(friends).slice(0, 4)) {
     const name = rawName.replace(/[^\p{L}\p{N} .'_]/gu, '').trim().slice(0, 24)
-    if (!name || name === 'You' || name === 'Hindcast' || !(p >= 0.01 && p <= 0.99)) continue
+    if (!name || name === 'You' || name === 'Mnemora' || !(p >= 0.01 && p <= 0.99)) continue
     probs[name] = clampP(p)
     voice(k, name, 'friend')
   }
   const creds = Object.fromEntries(Object.keys(probs).map(n => [n, k.voices[n].cred]))
   const w = weights(creds)
-  probs.Hindcast = blend(probs, w)
-  voice(k, 'Hindcast', 'hindcast')
-  const disagreement = spread(Object.fromEntries(Object.entries(probs).filter(([n]) => n !== 'Hindcast')))
+  probs.Mnemora = blend(probs, w)
+  voice(k, 'Mnemora', 'mnemora')
+  const disagreement = spread(Object.fromEntries(Object.entries(probs).filter(([n]) => n !== 'Mnemora')))
 
   const pick: Pick = { qid, title: q.title, side: q.side, category: q.category, closesAt: q.closesAt, at: Date.now(), probs, weights: w, disagreement }
   k.picks.push(pick)
 
   const others = Object.entries(probs)
-    .filter(([n]) => n !== 'You' && n !== 'Hindcast')
+    .filter(([n]) => n !== 'You' && n !== 'Mnemora')
     .map(([n, p]) => `${n} said ${pct(p)}`)
     .join('. ')
   const weightText = Object.entries(w)
     .map(([n, x]) => `${n} ${x.toFixed(2)}`)
     .join(', ')
   const flag = disagreement >= 0.2 ? ` Sources disagree by ${Math.round(disagreement * 100)} points.` : ''
-  const text = `Call logged before the event on ${new Date().toISOString().slice(0, 16)} UTC. Question: "${q.title}" (${q.side}, closes ${new Date(q.closesAt).toISOString().slice(0, 10)}). You said ${pct(probs.You)}. ${others}. Hindcast blended ${pct(probs.Hindcast)} using weights ${weightText}.${flag}`
+  const text = `Call logged before the event on ${new Date().toISOString().slice(0, 16)} UTC. Question: "${q.title}" (${q.side}, closes ${new Date(q.closesAt).toISOString().slice(0, 10)}). You said ${pct(probs.You)}. ${others}. Mnemora blended ${pct(probs.Mnemora)} using weights ${weightText}.${flag}`
   const rec = await remember(keeperNs(k.id), 'calls', 'pick', text)
   k.memoryIds.push(rec.id)
   return { pick, memory: rec, question: q }
@@ -243,7 +243,7 @@ export async function scorePicks(k: Keeper) {
     const baseName = q.source === 'onchain' ? 'Onchain' : 'Market'
     const base = scores[baseName] ?? 0.25
     for (const [n, s] of Object.entries(scores)) {
-      const v = k.voices[n] || voice(k, n, n === 'Hindcast' ? 'hindcast' : 'friend')
+      const v = k.voices[n] || voice(k, n, n === 'Mnemora' ? 'mnemora' : 'friend')
       v.n += 1
       v.brierSum += s
       v.baseSum += base
@@ -261,12 +261,12 @@ export async function scorePicks(k: Keeper) {
       .map(([n, s]) => `${n} ${s.toFixed(3)}`)
       .join(', ')
     const trust = trustTable(k)
-      .filter(t => t.name !== 'Hindcast')
+      .filter(t => t.name !== 'Mnemora')
       .slice(0, 5)
       .map(t => `${t.name} ${t.cred.toFixed(2)}`)
       .join(', ')
     const result = o ? q.side : q.other
-    const text = `Scorecard for "${q.title}": it resolved ${result}. ${q.resolution || ''} Brier scores, lower is better: ${line}. Closest voice: ${winner}. Hindcast now trusts: ${trust}.`
+    const text = `Scorecard for "${q.title}": it resolved ${result}. ${q.resolution || ''} Brier scores, lower is better: ${line}. Closest voice: ${winner}. Mnemora now trusts: ${trust}.`
     const rec = await remember(keeperNs(k.id), 'calls', 'scorecard', text)
     k.memoryIds.push(rec.id)
     learn(k, 'calls', `After "${q.title.slice(0, 70)}" resolved ${result}, trust moved to ${trust}.`)
@@ -274,7 +274,7 @@ export async function scorePicks(k: Keeper) {
   return out
 }
 
-// ---------------------------------------------------------------- replay: hindcasting the crowd
+// ---------------------------------------------------------------- replay: mnemoraing the crowd
 
 export async function replay(k: Keeper, cat: pm.Category) {
   const markets = (await pm.resolvedMarkets(cat, 20)).slice(0, 10)
@@ -294,7 +294,7 @@ export async function replay(k: Keeper, cat: pm.Category) {
   const right = rows.filter(r => (r.p >= 0.5 ? 1 : 0) === r.o).length
   const label = cat === 'culture' ? 'culture' : cat
   const worst = rows.slice().sort((a, b) => b.b - a.b)[0]
-  const text = `Hindcast replayed ${rows.length} ${label} markets that resolved recently, reading each one's Polymarket price 24 hours before it closed. The crowd favourite won ${right} of ${rows.length}. Average Brier ${avg.toFixed(3)}. The biggest miss was "${worst.title}" at ${pct(worst.p)}. Lesson: in ${label}, the day before odds are ${avg < 0.1 ? 'hard to beat, so lean on the market' : avg < 0.18 ? 'useful but beatable' : 'noisy, so weigh other voices more'}.`
+  const text = `Mnemora replayed ${rows.length} ${label} markets that resolved recently, reading each one's Polymarket price 24 hours before it closed. The crowd favourite won ${right} of ${rows.length}. Average Brier ${avg.toFixed(3)}. The biggest miss was "${worst.title}" at ${pct(worst.p)}. Lesson: in ${label}, the day before odds are ${avg < 0.1 ? 'hard to beat, so lean on the market' : avg < 0.18 ? 'useful but beatable' : 'noisy, so weigh other voices more'}.`
   const rec = await remember(keeperNs(k.id), 'calls', 'replay', text)
   k.memoryIds.push(rec.id)
   learn(k, 'calls', `Replay of ${rows.length} ${label} markets: crowd favourite won ${right}/${rows.length}, Brier ${avg.toFixed(3)}.`)

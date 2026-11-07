@@ -168,7 +168,7 @@ export function renderPocket(app: HTMLElement, ctx: Ctx, rest: string[]) {
       <aside class="side">
         <div class="panel">
           <h3>Subscriptions</h3>
-          <p class="sub">Repeating payments Watch found. Set what each one is allowed to cost a month and Hindcast remembers it.</p>
+          <p class="sub">Repeating payments Watch found. Set what each one is allowed to cost a month and Mnemora remembers it.</p>
           ${recurring.length ? `<div class="journal">${recurring.map((r: any) => {
             const monthly = (r.usd * 30) / r.everyDays
             const over = r.capUsd && monthly > r.capUsd
