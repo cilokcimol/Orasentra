@@ -89,8 +89,45 @@ export async function write<T>(path: string, value: T): Promise<T> {
   return value
 }
 
-/** Read, change and write back, retrying when another request wrote in between. */
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/**
+ * Runs fn while holding a short lock on name, shared by every server instance.
+ * The lock is a blob that can only be created when it does not exist yet; a lock older than 10 seconds is treated as abandoned.
+ */
+export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  if (!env.blobToken) return fn()
+  const { put, del, head } = await import('@vercel/blob')
+  const path = `locks/${name}.lock`
+  for (let attempt = 0; attempt < 60; attempt++) {
+    let held = false
+    try {
+      await put(path, String(Date.now()), { access: 'private', token: env.blobToken, addRandomSuffix: false, allowOverwrite: false, contentType: 'text/plain' } as never)
+      held = true
+    } catch (e) {
+      const msg = `${(e as Error)?.name} ${(e as Error)?.message}`
+      if (!/exist|overwrite/i.test(msg)) throw e
+      const h = (await head(path, { token: env.blobToken } as never).catch(() => null)) as { uploadedAt?: Date } | null
+      if (h?.uploadedAt && Date.now() - new Date(h.uploadedAt).getTime() > 10000) await del(path, { token: env.blobToken } as never).catch(() => {})
+      await sleep(120 + Math.random() * 200)
+    }
+    if (held) {
+      try {
+        return await fn()
+      } finally {
+        await del(path, { token: env.blobToken } as never).catch(() => {})
+      }
+    }
+  }
+  throw new Error(`Busy saving ${name}. Try again in a moment.`)
+}
+
+/** Read, change and write back under a lock, so parallel requests never lose updates. */
 export async function update<T>(path: string, fallback: T, fn: (v: T) => T | void): Promise<T> {
+  return withLock(path.replace(/[^a-z0-9]+/gi, '-'), () => updateUnlocked(path, fallback, fn))
+}
+
+async function updateUnlocked<T>(path: string, fallback: T, fn: (v: T) => T | void): Promise<T> {
   for (let attempt = 0; attempt < 6; attempt++) {
     const { value, etag } = await load(path)
     const current = structuredClone((value ?? fallback) as T)

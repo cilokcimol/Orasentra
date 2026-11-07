@@ -2,7 +2,7 @@
 // savings goals that adapt to real cash flow, and subscription limits learned from you.
 
 import { randomBytes } from 'node:crypto'
-import { read, write } from './store.js'
+import { read, withLock, write } from './store.js'
 import { remember } from './memory.js'
 import { settleUp } from './score.js'
 import { HttpError, keeperNs, learn, type Goal, type Keeper } from './keeper.js'
@@ -92,20 +92,23 @@ export function balances(g: Group) {
 const money = (n: number, c: string) => `${c} ${Math.round(n).toLocaleString('en-US')}`
 
 export async function addExpense(k: Keeper, id: string, text: string) {
-  const g = await loadGroup(id)
-  const e: Expense = { id: rid(), at: Date.now(), ...parseExpense(text, g.members) }
-  g.expenses.push(e)
+  const { g, e, norm } = await withLock(`g-${id}`, async () => {
+    const g = await loadGroup(id)
+    const e: Expense = { id: rid(), at: Date.now(), ...parseExpense(text, g.members) }
+    g.expenses.push(e)
+    const word = e.desc.toLowerCase().split(' ')[0]
+    const sameKind = g.expenses.filter(x => x.desc.toLowerCase().startsWith(word)).slice(-4)
+    let norm = ''
+    if (sameKind.length >= 3 && sameKind.filter(x => x.payer === e.payer).length >= 3) {
+      norm = `${e.payer} usually pays for ${word}.`
+      if (!g.norms.includes(norm)) g.norms.push(norm)
+      else norm = ''
+    }
+    await write(`g/${g.id}.json`, g)
+    return { g, e, norm }
+  })
   const bal = balances(g)
   const plan = settleUp(bal)
-  const word = e.desc.toLowerCase().split(' ')[0]
-  const sameKind = g.expenses.filter(x => x.desc.toLowerCase().startsWith(word)).slice(-4)
-  let norm = ''
-  if (sameKind.length >= 3 && sameKind.filter(x => x.payer === e.payer).length >= 3) {
-    norm = `${e.payer} usually pays for ${word}.`
-    if (!g.norms.includes(norm)) g.norms.push(norm)
-    else norm = ''
-  }
-  await write(`g/${g.id}.json`, g)
   const owes = plan.map(p => `${p.from} owes ${p.to} ${money(p.amount, g.currency)}`).join('; ') || 'everyone is square'
   const rec = await remember(groupNs(g.id), 'pocket', 'expense', `${e.payer} paid ${money(e.amount, g.currency)} for ${e.desc}, split between ${e.split.join(', ')}. Treasury "${g.name}" now: ${owes}.${norm ? ' Pattern noticed: ' + norm : ''}`)
   k.memoryIds.push(rec.id)
@@ -114,10 +117,13 @@ export async function addExpense(k: Keeper, id: string, text: string) {
 }
 
 export async function settle(k: Keeper, id: string, from: string, to: string, amount: number) {
-  const g = await loadGroup(id)
-  if (!g.members.includes(from) || !g.members.includes(to) || !(amount > 0)) throw new HttpError(400, 'Pick two people and an amount.')
-  g.settlements.push({ from, to, amount, at: Date.now() })
-  await write(`g/${g.id}.json`, g)
+  const g = await withLock(`g-${id}`, async () => {
+    const g = await loadGroup(id)
+    if (!g.members.includes(from) || !g.members.includes(to) || !(amount > 0)) throw new HttpError(400, 'Pick two people and an amount.')
+    g.settlements.push({ from, to, amount, at: Date.now() })
+    await write(`g/${g.id}.json`, g)
+    return g
+  })
   const plan = settleUp(balances(g))
   const rec = await remember(groupNs(g.id), 'pocket', 'settle', `${from} paid back ${to} ${money(amount, g.currency)} in treasury "${g.name}". Still open: ${plan.map(p => `${p.from} owes ${p.to} ${money(p.amount, g.currency)}`).join('; ') || 'nothing, everyone is square'}.`)
   k.memoryIds.push(rec.id)
