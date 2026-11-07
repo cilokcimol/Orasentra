@@ -106,7 +106,7 @@ export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T
       held = true
     } catch (e) {
       const msg = `${(e as Error)?.name} ${(e as Error)?.message}`
-      if (!/exist|overwrite/i.test(msg)) throw e
+      if (!/exist|overwrite|conflict|precondition/i.test(msg)) throw e
       const h = (await head(path, { token: env.blobToken } as never).catch(() => null)) as { uploadedAt?: Date } | null
       if (h?.uploadedAt && Date.now() - new Date(h.uploadedAt).getTime() > 10000) await del(path, { token: env.blobToken } as never).catch(() => {})
       await sleep(120 + Math.random() * 200)
