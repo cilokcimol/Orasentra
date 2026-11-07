@@ -145,12 +145,19 @@ export function mountRelic(host: HTMLElement, opts: { tooltip?: HTMLElement; com
   scene.add(relic)
 
   // The crystal: an elongated bipyramid with facets and glassy transmission.
-  const crystalGeo = new THREE.OctahedronGeometry(1, 0)
-  crystalGeo.scale(0.95, 1.85, 0.95)
+  // A faceted water drop: the shape of Sui, cut like a gem.
+  const profile: THREE.Vector2[] = []
+  for (let i = 14; i >= 0; i--) {
+    const a = (i / 14) * Math.PI
+    profile.push(new THREE.Vector2(Math.max(0.0001, Math.sin(a) * Math.pow(Math.sin(a / 2), 1.3) * 1.05), Math.cos(a) * 1.75 + 0.15))
+  }
+  const crystalGeo = new THREE.LatheGeometry(profile, 9)
+  crystalGeo.scale(1.15, 1.05, 1.15)
+  crystalGeo.computeVertexNormals()
   const crystalMat = new THREE.MeshPhysicalMaterial({ color: 0xcff4ff, metalness: 0.15, roughness: 0.08, transparent: true, opacity: 0.5, flatShading: true, iridescence: 1, iridescenceIOR: 1.6, iridescenceThicknessRange: [200, 900], clearcoat: 1, envMapIntensity: 1.6, side: THREE.DoubleSide, depthWrite: false })
   const crystal = new THREE.Mesh(crystalGeo, crystalMat)
   relic.add(crystal)
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(crystalGeo), new THREE.LineBasicMaterial({ color: 0xbffcff, transparent: true, opacity: 0.35 }))
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(crystalGeo, 20), new THREE.LineBasicMaterial({ color: 0xbffcff, transparent: true, opacity: 0.35 }))
   relic.add(edges)
 
   // Inner core light and halo
@@ -158,7 +165,8 @@ export function mountRelic(host: HTMLElement, opts: { tooltip?: HTMLElement; com
   relic.add(core)
   // An inner glow volume so the crystal reads as lit from within.
   const innerGeo = crystalGeo.clone()
-  innerGeo.scale(0.62, 0.7, 0.62)
+  innerGeo.scale(0.6, 0.62, 0.6)
+  innerGeo.translate(0, -0.25, 0)
   const inner = new THREE.Mesh(innerGeo, new THREE.MeshBasicMaterial({ color: 0x5fe8d0, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }))
   relic.add(inner)
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('rgba(255,236,190,1)', 'rgba(120,240,210,0.35)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }))
@@ -195,16 +203,16 @@ export function mountRelic(host: HTMLElement, opts: { tooltip?: HTMLElement; com
 
   // Memory shards
   const MAX = 72
-  const shardGeo = new THREE.OctahedronGeometry(0.11, 0)
-  shardGeo.scale(0.7, 1.5, 0.7)
-  const shardMat = new THREE.MeshStandardMaterial({ roughness: 0.25, metalness: 0.2, emissiveIntensity: 1, flatShading: true, vertexColors: false })
+  const shardGeo = new THREE.IcosahedronGeometry(0.1, 0)
+  shardGeo.scale(0.8, 1.25, 0.8)
+  const shardMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.9 })
   const shards = new THREE.InstancedMesh(shardGeo, shardMat, MAX)
   shards.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
   scene.add(shards)
   type Slot = { r: number; tilt: number; phase: number; speed: number; y: number; data?: Shard; born: number }
   let slots: Slot[] = []
   let data: Shard[] = []
-  const colorOf = (s?: Shard) => new THREE.Color(s ? ROOM_COLOR[s.room] ?? 0x9ad7ff : 0x5b7a99)
+  const colorOf = (s?: Shard) => new THREE.Color(s ? ROOM_COLOR[s.room] ?? 0x9ad7ff : 0x7fb4d8)
 
   function layout() {
     const count = Math.min(MAX, Math.max(36, data.length))
