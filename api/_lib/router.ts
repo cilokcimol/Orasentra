@@ -66,23 +66,18 @@ export async function handle(req: Request): Promise<Response> {
       return json({ memory: mem, memoryMode: memoryMode(), tatum: tatumReady(), tatumCalls: t, tatumMethods: tatumMethods(), llm: Boolean(env.geminiKey), demoAddress: env.demoAddress || null, demoKey: /^[a-f0-9]{32,64}$/.test(env.demoKey) ? env.demoKey : null, stats: publicStats(s) })
     }
     if (path === 'diag/tatum') {
-      const { env } = await import('./env.js')
-      const k = env.tatumKey
-      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'sui_getChainIdentifier', params: [] })
-      const variants: [string, string, Record<string, string>][] = [
-        ['gw', 'https://sui-mainnet.gateway.tatum.io', { 'x-api-key': k }],
-        ['gwslash', 'https://sui-mainnet.gateway.tatum.io/', { 'x-api-key': k }],
-        ['v3sui', 'https://api.tatum.io/v3/blockchain/node/sui-mainnet', { 'x-api-key': k }],
-        ['v3SUI', 'https://api.tatum.io/v3/blockchain/node/SUI', { 'x-api-key': k }],
-        ['gwpath', `https://sui-mainnet.gateway.tatum.io/${k}`, {}],
-        ['v3path', `https://api.tatum.io/v3/blockchain/node/sui-mainnet/${k}`, {}],
-      ]
+      const tatum = await import('./tatum.js')
       const out: Record<string, string> = {}
-      for (const [n, u, h] of variants) {
-        const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json', ...h }, body, signal: AbortSignal.timeout(8000) }).catch(() => null)
-        out[n] = r ? `${r.status} ${(await r.text()).replaceAll(k, '<key>').slice(0, 90)}` : 'fail'
-        await new Promise(r => setTimeout(r, 1500))
+      const run = async (n: string, f: () => Promise<unknown>) => {
+        try {
+          out[n] = `ok ${JSON.stringify(await f()).slice(0, 160)}`
+        } catch (e) {
+          out[n] = String((e as Error).message).slice(0, 160)
+        }
       }
+      await run('checkpoint', () => tatum.checkpoint())
+      await run('price', () => tatum.suiPrice())
+      if (env.demoAddress) await run('txs', async () => (await tatum.recentTxs(env.demoAddress, 5)).map(t => [t.digest.slice(0, 8), t.balanceChanges?.length]))
       return json(out)
     }
     if (path === 'board') {

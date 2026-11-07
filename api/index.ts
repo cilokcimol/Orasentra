@@ -1,7 +1,5 @@
 import { handle } from './_lib/router.js'
 
-export const config = { maxDuration: 60 }
-
 const route = (req: Request) => {
   const url = new URL(req.url)
   const p = url.searchParams.get('__p')

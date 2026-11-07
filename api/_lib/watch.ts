@@ -1,11 +1,11 @@
 // Watch: an expense watchdog for a Sui wallet. Reads payments through Tatum, learns what is normal
 // for you from your answers, and picks up exactly where it left off next time.
 
-import { txsFor, suiPrice, tatumReady, type SuiTx } from './tatum.js'
+import { recentTxs, suiPrice, tatumReady, type SuiTx } from './tatum.js'
 import { remember } from './memory.js'
 import { HttpError, keeperNs, learn, type Keeper, type WatchAlert, type WatchTx } from './keeper.js'
 
-const SUI = '0x2::sui::SUI'
+const isSui = (t: string) => /::sui::SUI$/.test(t)
 const isUsdc = (t: string) => /::usdc::USDC$/i.test(t)
 const short = (a: string) => (a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a)
 const usd = (n: number) => `$${n.toFixed(n >= 100 ? 0 : 2)}`
@@ -25,8 +25,8 @@ export function toWatchTx(tx: SuiTx, me: string, price: number): WatchTx | null 
   if (!mine.length) return null
   const valued = mine.map(c => {
     const raw = Number(c.amount)
-    const amount = c.coinType === SUI ? raw / 1e9 : isUsdc(c.coinType) ? raw / 1e6 : raw
-    const value = c.coinType === SUI ? amount * price : isUsdc(c.coinType) ? amount : 0
+    const amount = isSui(c.coinType) ? raw / 1e9 : isUsdc(c.coinType) ? raw / 1e6 : raw
+    const value = isSui(c.coinType) ? amount * price : isUsdc(c.coinType) ? amount : 0
     return { c, amount, value }
   })
   const main = valued.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))[0]
@@ -36,7 +36,7 @@ export function toWatchTx(tx: SuiTx, me: string, price: number): WatchTx | null 
     .filter(c => (dir === 'out' ? Number(c.amount) > 0 : Number(c.amount) < 0))
     .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
   const counterparty = others[0] ? ownerOf(others[0]) : 'contract'
-  const coin = main.c.coinType === SUI ? 'SUI' : isUsdc(main.c.coinType) ? 'USDC' : main.c.coinType.split('::').pop() || 'coin'
+  const coin = isSui(main.c.coinType) ? 'SUI' : isUsdc(main.c.coinType) ? 'USDC' : main.c.coinType.split('::').pop() || 'coin'
   return { digest: tx.digest, t: Number(tx.timestampMs), usd: Math.abs(main.value), dir, counterparty, coin, amount: Math.abs(main.amount) }
 }
 
@@ -80,9 +80,9 @@ export async function scan(k: Keeper, address?: string) {
   const me = k.watch.address
   if (!me) throw new HttpError(400, 'Add a Sui address to watch first.')
   const { usd: price } = await suiPrice()
-  const [outs, ins] = await Promise.all([txsFor(me, 'FromAddress', 40), txsFor(me, 'ToAddress', 25)])
+  const recent = await recentTxs(me, 60)
   const seen = new Set(k.watch.txs.map(t => t.digest))
-  const all = [...outs.data, ...ins.data]
+  const all = recent
     .map(tx => toWatchTx(tx, me, price))
     .filter((t): t is WatchTx => Boolean(t))
     .filter((t, i, arr) => arr.findIndex(x => x.digest === t.digest) === i)

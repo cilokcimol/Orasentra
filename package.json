@@ -14,6 +14,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.7",
+    "@grpc/proto-loader": "^0.8.1",
     "@mysten-incubation/memwal": "^0.1.13",
     "@vercel/blob": "^2.8.2"
   },
