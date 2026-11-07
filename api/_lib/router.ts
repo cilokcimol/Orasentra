@@ -66,14 +66,16 @@ export async function handle(req: Request): Promise<Response> {
       return json({ memory: mem, memoryMode: memoryMode(), tatum: tatumReady(), tatumCalls: t, tatumMethods: tatumMethods(), llm: Boolean(env.geminiKey), demoAddress: env.demoAddress || null, demoKey: /^[a-f0-9]{32,64}$/.test(env.demoKey) ? env.demoKey : null, stats: publicStats(s) })
     }
     if (path === 'diag/tatum') {
-      const { env } = await import('./env.js')
-      const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'sui_getLatestCheckpointSequenceNumber', params: [] })
-      const urls = ['https://sui-mainnet.gateway.tatum.io', 'https://sui-mainnet.gateway.tatum.io/', 'https://sui-mainnet.gateway.tatum.io/v1', 'https://sui-mainnet.gateway.tatum.io/rpc']
-      const heads: Record<string, Record<string, string>> = { xapi: { 'x-api-key': env.tatumKey }, bearer: { authorization: `bearer ${env.tatumKey}` }, none: {} }
-      const out: Record<string, string> = { keyShape: `${env.tatumKey.slice(0, 2)}…${env.tatumKey.length}` }
-      for (const u of urls) for (const [h, hv] of Object.entries(heads)) {
-        const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', ...hv }, body, signal: AbortSignal.timeout(8000) }).catch(e => null)
-        out[`${u.replace('https://sui-mainnet.gateway.tatum.io', '') || 'base'}:${h}`] = r ? `${r.status} ${(await r.text()).slice(0, 60)}` : 'fail'
+      const { sui } = await import('./tatum.js')
+      const out: Record<string, string> = {}
+      for (const [m, p] of [['sui_getLatestCheckpointSequenceNumber', []], ['sui_getObject', ['0xb8d7d9e66a60c239e7a60110efcf8de6c705580ed924d0dde141f4a0e2c90105', { showContent: true }]]] as const) {
+        try {
+          const r = await sui<unknown>(m, p as unknown as unknown[])
+          out[m] = `ok ${JSON.stringify(r).slice(0, 80)}`
+        } catch (e) {
+          out[m] = String((e as Error).message).slice(0, 120)
+        }
+        await new Promise(r => setTimeout(r, 1200))
       }
       return json(out)
     }
