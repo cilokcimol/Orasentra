@@ -115,20 +115,73 @@ export function keeperFrom(req: Request): string {
   return keeperHash(secret)
 }
 
+const shape = (hash: string, k: Keeper | null): Keeper =>
+  k ? { ...fresh(hash), ...k, watch: { ...fresh(hash).watch, ...k.watch }, pocket: { ...fresh(hash).pocket, ...k.pocket } } : fresh(hash)
+
+// What each request loaded, so a save can tell its own changes from changes other requests made meanwhile.
+const loaded = new WeakMap<Keeper, string>()
+
 export async function loadKeeper(hash: string): Promise<Keeper> {
-  const k = await read<Keeper | null>(`k/${hash}.json`, null)
-  const out = k ? { ...fresh(hash), ...k, watch: { ...fresh(hash).watch, ...k.watch }, pocket: { ...fresh(hash).pocket, ...k.pocket } } : fresh(hash)
+  const out = shape(hash, await read<Keeper | null>(`k/${hash}.json`, null))
+  loaded.set(out, JSON.stringify(out))
   out.seen = Date.now()
   return out
 }
 
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+const isObj = (v: unknown): v is Record<string, unknown> => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
+const itemKey = (x: any): string =>
+  isObj(x) ? String(x.id ?? x.qid ?? x.digest ?? (x.t !== undefined && x.text !== undefined ? `${x.t}|${x.text}` : JSON.stringify(x))) : JSON.stringify(x)
+
+/** Three way merge: base is what this request loaded, ours is what it wants to save, theirs is what is stored now. */
+export function merge3(base: any, ours: any, theirs: any): any {
+  if (same(ours, base)) return theirs
+  if (same(theirs, base) || theirs === undefined) return ours
+  if (isObj(ours) && isObj(theirs)) {
+    const b = isObj(base) ? base : {}
+    const out: Record<string, unknown> = {}
+    for (const key of new Set([...Object.keys(theirs), ...Object.keys(ours)])) out[key] = merge3(b[key], ours[key], theirs[key])
+    return out
+  }
+  if (Array.isArray(ours) && Array.isArray(theirs)) {
+    const b = new Map((Array.isArray(base) ? base : []).map(x => [itemKey(x), x]))
+    const t = new Map(theirs.map(x => [itemKey(x), x]))
+    const o = new Set(ours.map(itemKey))
+    const out: unknown[] = []
+    for (const x of ours) {
+      const key = itemKey(x)
+      const was = b.get(key)
+      if (was !== undefined && same(x, was)) {
+        if (!t.has(key)) continue // the other request removed it
+        out.push(t.get(key)) // unchanged here, take their version
+      } else out.push(x)
+    }
+    for (const x of theirs) {
+      const key = itemKey(x)
+      if (!o.has(key) && !b.has(key)) out.push(x) // added by the other request
+    }
+    return out
+  }
+  return ours
+}
+
 export async function saveKeeper(k: Keeper) {
-  k.picks = k.picks.slice(-300)
-  k.learned = k.learned.slice(-200)
-  k.watch.txs = k.watch.txs.slice(0, 300)
-  k.watch.alerts = k.watch.alerts.slice(0, 120)
-  k.memoryIds = k.memoryIds.slice(-500)
-  return write(`k/${k.id}.json`, k)
+  const path = `k/${k.id}.json`
+  const base = loaded.get(k)
+  let next: Keeper = k
+  if (base) {
+    const now = await read<Keeper | null>(path, null)
+    const stored = now ? JSON.stringify(shape(k.id, now)) : null
+    if (stored && stored !== base) next = merge3(JSON.parse(base), k, JSON.parse(stored)) as Keeper
+  }
+  next.picks = next.picks.slice(-300)
+  next.learned = next.learned.slice(-200)
+  next.watch.txs = next.watch.txs.sort((a, b) => b.t - a.t).slice(0, 300)
+  next.watch.alerts = next.watch.alerts.sort((a, b) => b.t - a.t).slice(0, 120)
+  next.memoryIds = next.memoryIds.slice(-500)
+  await write(path, next)
+  loaded.set(next, JSON.stringify(next))
+  return next
 }
 
 export function learn(k: Keeper, room: string, text: string) {

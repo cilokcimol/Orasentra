@@ -85,8 +85,8 @@ export async function handle(req: Request): Promise<Response> {
         await calls.board().catch(() => null)
         const scored = await calls.scorePicks(k)
         const s = await settleMemories().catch(() => memoryStats())
-        await saveKeeper(k)
-        return json({ keeper: view(k), scored, memories: myMemories(k, s.recent), stats: publicStats(s) })
+        const saved = await saveKeeper(k)
+        return json({ keeper: view(saved), scored, memories: myMemories(saved, s.recent), stats: publicStats(s) })
       }
       case 'keeper/name':
         k.name = String(body.name || '').replace(/[^\p{L}\p{N} .'_]/gu, '').slice(0, 24) || undefined
@@ -137,8 +137,8 @@ export async function handle(req: Request): Promise<Response> {
       default:
         throw new HttpError(404, 'Unknown endpoint.')
     }
-    await saveKeeper(k)
-    return json({ ok: true, result: out, keeper: view(k) })
+    const saved = await saveKeeper(k)
+    return json({ ok: true, result: out, keeper: view(saved) })
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status)
     console.error(e)

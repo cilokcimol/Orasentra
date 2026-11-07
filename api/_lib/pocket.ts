@@ -145,7 +145,7 @@ function plan(goal: Goal, k: Keeper) {
   if (room >= need) return { weekly: need, why: `Your wallet kept about $${(flow.net / 4.3).toFixed(2)} a week over the last 30 days, so ${need.toFixed(2)} a week fits.` }
   return {
     weekly: Math.max(room, need * 0.5),
-    why: `The last 30 days left only about $${(Math.max(0, flow.net) / 4.3).toFixed(2)} a week. Planning ${Math.max(room, need * 0.5).toFixed(2)} a week instead of ${need.toFixed(2)}; the date may slip unless spending drops.`,
+    why: `${flow.net > 0 ? `The last 30 days left only about $${(flow.net / 4.3).toFixed(2)} a week` : `The watched wallet spent more than it received over the last 30 days`}. Planning ${Math.max(room, need * 0.5).toFixed(2)} a week instead of ${need.toFixed(2)}; the date may slip unless spending drops.`,
   }
 }
 

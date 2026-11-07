@@ -86,3 +86,37 @@ describe('ask', () => {
     expect(dayRange('kemarin habis berapa', Date.UTC(2026, 10, 7))!.label).toBe('yesterday')
   })
 })
+
+import { merge3 } from '../api/_lib/keeper.js'
+
+describe('keeper merge', () => {
+  const base = { seen: 1, picks: [{ qid: 'a', p: 1 }], watch: { lastScan: 1, txs: [{ digest: 'x', t: 1 }], rules: [{ id: 'r1', scope: 's', limitUsd: 5 }] }, memoryIds: ['m1'] }
+  it('keeps changes made by two requests at once', () => {
+    const ours = structuredClone(base)
+    ours.seen = 3
+    ours.watch.lastScan = 9
+    ours.watch.txs = [{ digest: 'y', t: 2 }, ...ours.watch.txs]
+    ours.memoryIds.push('m2')
+    const theirs = structuredClone(base)
+    theirs.seen = 2
+    theirs.picks.push({ qid: 'b', p: 2 })
+    theirs.memoryIds.push('m3')
+    theirs.watch.rules = [{ id: 'r2', scope: 's', limitUsd: 9 }]
+    const m = merge3(base, ours, theirs)
+    expect(m.watch.lastScan).toBe(9)
+    expect(m.watch.txs.map((t: any) => t.digest)).toEqual(['y', 'x'])
+    expect(m.picks.map((p: any) => p.qid)).toEqual(['a', 'b'])
+    expect(m.memoryIds.sort()).toEqual(['m1', 'm2', 'm3'])
+    expect(m.watch.rules.map((r: any) => r.id)).toEqual(['r2'])
+    expect(m.seen).toBe(3)
+  })
+  it('takes our edit of an item the other side left alone', () => {
+    const ours = structuredClone(base)
+    ours.picks[0].p = 7
+    const theirs = structuredClone(base)
+    theirs.memoryIds.push('m9')
+    const m = merge3(base, ours, theirs)
+    expect(m.picks[0].p).toBe(7)
+    expect(m.memoryIds).toEqual(['m1', 'm9'])
+  })
+})

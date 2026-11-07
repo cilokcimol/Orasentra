@@ -61,9 +61,12 @@ async function get<T>(url: string): Promise<T> {
 }
 
 /** The main market of each popular open event in a category. */
-export async function openMarkets(cat: Category, limit = 14): Promise<PmMarket[]> {
+export async function openMarkets(cat: Category, limit = 30): Promise<PmMarket[]> {
+  // Only events that settle between two hours and thirty days from now, so every call gets a result soon.
+  const from = new Date(Date.now() + 2 * 3600000).toISOString()
+  const to = new Date(Date.now() + 30 * 86400000).toISOString()
   const events = await get<Record<string, unknown>[]>(
-    `${GAMMA}/events?limit=${limit}&active=true&closed=false&tag_slug=${TAGS[cat]}&order=volume24hr&ascending=false`,
+    `${GAMMA}/events?limit=${limit}&active=true&closed=false&tag_slug=${TAGS[cat]}&order=volume24hr&ascending=false&end_date_min=${from}&end_date_max=${to}`,
   )
   const out: PmMarket[] = []
   for (const ev of events) {
