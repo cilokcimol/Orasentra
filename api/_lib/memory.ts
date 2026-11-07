@@ -1,6 +1,7 @@
 // Walrus Memory. Every meaningful event becomes one plain English memory in the keeper's namespace.
 // The relayer stores it on Walrus mainnet; we keep a local log of job ids and blob ids so the UI can link to each one.
 
+import { waitUntil } from '@vercel/functions'
 import { MemWal, MemWalMock } from '@mysten-incubation/memwal'
 import { env, memoryMode } from './env.js'
 import { read, update } from './store.js'
@@ -63,14 +64,24 @@ export async function remember(ns: string, room: Room, kind: string, text: strin
     rec.status = 'failed'
     rec.error = String((e as Error)?.message || e).slice(0, 200)
   }
-  await update<MemoryStats>(STATS, emptyStats(), s => {
+  // The shared counter is bookkeeping: finish it after the response so the person is not kept waiting.
+  later(update<MemoryStats>(STATS, emptyStats(), s => {
     s.total += rec.status === 'failed' ? 0 : 1
     s.byRoom[room] = (s.byRoom[room] || 0) + (rec.status === 'failed' ? 0 : 1)
     s.recent.unshift(rec)
     s.recent = s.recent.slice(0, 400)
     if (!s.namespaces.includes(ns)) s.namespaces.push(ns)
-  })
+  }))
   return rec
+}
+
+function later(p: Promise<unknown>) {
+  const safe = p.catch(e => console.error('background save failed', e))
+  try {
+    waitUntil(safe)
+  } catch {
+    void safe
+  }
 }
 
 /** Polls the relayer for pending jobs and records their Walrus blob ids. */
