@@ -24,7 +24,19 @@ async function fsWrite(path: string, value: unknown) {
   await writeFile(file, JSON.stringify(value))
 }
 
+/** A read that lands while the same blob is being overwritten can return a partial body; read again. */
 async function blobRead(path: string): Promise<{ value: unknown | null; etag?: string }> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await blobReadOnce(path)
+    } catch (e) {
+      if (!(e instanceof SyntaxError) || attempt >= 5) throw e
+      await new Promise(r => setTimeout(r, 150 + attempt * 150))
+    }
+  }
+}
+
+async function blobReadOnce(path: string): Promise<{ value: unknown | null; etag?: string }> {
   const { get } = await import('@vercel/blob')
   try {
     const res = (await get(path, { access: 'private', token: env.blobToken, useCache: false } as never)) as unknown as {
