@@ -5,7 +5,7 @@ export const env = {
   memwalAccount: process.env.MEMWAL_ACCOUNT_ID || '',
   memwalServer: process.env.MEMWAL_SERVER_URL || 'https://relayer.memory.walrus.xyz',
   tatumKey: (process.env.TATUM_API_KEY || '').trim(),
-  tatumSuiUrl: process.env.TATUM_SUI_URL || 'https://sui-mainnet.gateway.tatum.io',
+  tatumSuiUrl: process.env.TATUM_SUI_URL || 'https://sui-mainnet.gateway.tatum.io/',
   geminiKey: (process.env.GEMINI_API_KEY || '').trim(),
   geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   blobToken: process.env.BLOB_READ_WRITE_TOKEN || '',

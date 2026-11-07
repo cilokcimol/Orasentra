@@ -1,17 +1,18 @@
 // Small JSON document store. Vercel Blob (private) in production, local files in development.
 // Walrus Memory is the long term record; this store is the fast working copy the UI reads.
+// Reads bypass the CDN and writes use ETag preconditions, so parallel requests never lose updates.
 
 import { env } from './env.js'
 
 type Doc = Record<string, unknown>
-const cache = new Map<string, { at: number; value: unknown }>()
+const cache = new Map<string, { at: number; value: unknown; etag?: string }>()
 
-async function fsRead(path: string): Promise<unknown | null> {
+async function fsRead(path: string): Promise<{ value: unknown | null; etag?: string }> {
   const { readFile } = await import('node:fs/promises')
   try {
-    return JSON.parse(await readFile(`${env.dataDir}/${path}`, 'utf8'))
+    return { value: JSON.parse(await readFile(`${env.dataDir}/${path}`, 'utf8')) }
   } catch {
-    return null
+    return { value: null }
   }
 }
 
@@ -23,52 +24,90 @@ async function fsWrite(path: string, value: unknown) {
   await writeFile(file, JSON.stringify(value))
 }
 
-async function blobRead(path: string): Promise<unknown | null> {
+async function blobRead(path: string): Promise<{ value: unknown | null; etag?: string }> {
   const { get } = await import('@vercel/blob')
   try {
-    const res = await get(path, { access: 'private', token: env.blobToken } as never)
-    if (!res) return null
-    const r = res as unknown as { stream?: ReadableStream; body?: ReadableStream; text?: () => Promise<string> }
-    const stream = r.stream || r.body
-    const text = stream ? await new Response(stream).text() : r.text ? await r.text() : ''
-    return text ? JSON.parse(text) : null
+    const res = (await get(path, { access: 'private', token: env.blobToken, useCache: false } as never)) as unknown as {
+      statusCode?: number
+      stream?: ReadableStream
+      blob?: { etag?: string }
+      etag?: string
+    } | null
+    if (!res || !res.stream) return { value: null }
+    const text = await new Response(res.stream).text()
+    return { value: text ? JSON.parse(text) : null, etag: res.blob?.etag || res.etag }
   } catch (e) {
+    const name = (e as Error)?.name || ''
     const msg = String((e as Error)?.message || e)
-    if (/not.?found|404/i.test(msg)) return null
+    if (/NotFound/i.test(name) || /not.?found|404/i.test(msg)) return { value: null }
     throw e
   }
 }
 
-async function blobWrite(path: string, value: unknown) {
+class Conflict extends Error {}
+
+async function blobWrite(path: string, value: unknown, etag?: string | null) {
   const { put } = await import('@vercel/blob')
-  await put(path, JSON.stringify(value), {
-    access: 'private',
-    token: env.blobToken,
-    contentType: 'application/json',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    cacheControlMaxAge: 60,
-  } as never)
+  try {
+    const res = await put(path, JSON.stringify(value), {
+      access: 'private',
+      token: env.blobToken,
+      contentType: 'application/json',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      cacheControlMaxAge: 60,
+      ...(etag ? { ifMatch: etag } : {}),
+    } as never)
+    return (res as unknown as { etag?: string }).etag
+  } catch (e) {
+    const name = (e as Error)?.name || ''
+    if (/PreconditionFailed/i.test(name) || /precondition|412/i.test(String((e as Error)?.message))) throw new Conflict()
+    throw e
+  }
+}
+
+async function load(path: string) {
+  return env.blobToken ? blobRead(path) : fsRead(path)
 }
 
 export async function read<T = Doc>(path: string, fallback: T, maxAgeMs = 0): Promise<T> {
   const hit = cache.get(path)
-  if (hit && maxAgeMs && Date.now() - hit.at < maxAgeMs) return hit.value as T
-  const value = (env.blobToken ? await blobRead(path) : await fsRead(path)) as T | null
-  const out = value ?? fallback
-  cache.set(path, { at: Date.now(), value: out })
-  return out
+  if (hit && maxAgeMs && Date.now() - hit.at < maxAgeMs) return (hit.value ?? fallback) as T
+  const { value, etag } = await load(path)
+  cache.set(path, { at: Date.now(), value, etag })
+  return (value ?? fallback) as T
 }
 
 export async function write<T>(path: string, value: T): Promise<T> {
-  cache.set(path, { at: Date.now(), value })
-  if (env.blobToken) await blobWrite(path, value)
-  else await fsWrite(path, value)
+  if (env.blobToken) {
+    const etag = await blobWrite(path, value)
+    cache.set(path, { at: Date.now(), value, etag })
+  } else {
+    await fsWrite(path, value)
+    cache.set(path, { at: Date.now(), value })
+  }
   return value
 }
 
+/** Read, change and write back, retrying when another request wrote in between. */
 export async function update<T>(path: string, fallback: T, fn: (v: T) => T | void): Promise<T> {
-  const current = structuredClone(await read<T>(path, fallback))
-  const next = (fn(current) ?? current) as T
-  return write(path, next)
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { value, etag } = await load(path)
+    const current = structuredClone((value ?? fallback) as T)
+    const next = (fn(current) ?? current) as T
+    try {
+      if (env.blobToken) {
+        const newTag = await blobWrite(path, next, value === null ? null : etag)
+        cache.set(path, { at: Date.now(), value: next, etag: newTag })
+      } else {
+        await fsWrite(path, next)
+        cache.set(path, { at: Date.now(), value: next })
+      }
+      return next
+    } catch (e) {
+      if (!(e instanceof Conflict)) throw e
+      await new Promise(r => setTimeout(r, 60 + Math.random() * 180 * (attempt + 1)))
+    }
+  }
+  throw new Error(`Could not save ${path} after several attempts`)
 }
