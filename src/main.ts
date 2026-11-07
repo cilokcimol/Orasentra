@@ -37,7 +37,7 @@ const ctx: Ctx = {
     if (mem && room) {
       emitMemory(room)
       if (ctx.state) ctx.state.memories = [{ ...mem }, ...(ctx.state.memories || [])]
-      toast(mem.status === 'failed' ? `Saved here, but Walrus refused the memory: ${mem.error || 'unknown error'}` : 'Remembered. Writing it to Walrus now.')
+      toast(mem.status === 'failed' ? `Saved locally. Walrus did not accept the memory: ${mem.error || 'unknown error'}` : 'Memory sealed. Writing to Walrus now.')
     }
     ctx.rerender()
   },
@@ -67,15 +67,16 @@ async function route(scrollTop = true) {
   }
   const views: Record<string, (el: HTMLElement, c: Ctx, rest: string[]) => void | (() => void)> = {
     '': renderHome,
-    calls: renderCalls,
-    watch: renderWatch,
-    pocket: renderPocket,
-    ledger: renderLedger,
-    judge: renderJudge,
+    oracle: renderCalls,
+    sentinel: renderWatch,
+    treasury: renderPocket,
+    archive: renderLedger,
+    status: renderJudge,
   }
   const view = views[room] || renderHome
-  const titles: Record<string, string> = { calls: 'Calls', watch: 'Watch', pocket: 'Pocket', ledger: 'Ledger', judge: 'For judges' }
-  document.title = titles[room] ? `${titles[room]} · Mnemora` : 'Mnemora'
+  const titles: Record<string, string> = { oracle: 'Oracle', sentinel: 'Sentinel', treasury: 'Treasury', archive: 'Archive', status: 'Status' }
+  document.title = titles[room] ? `${titles[room]} · Orasentra` : 'Orasentra'
+  app.classList.toggle('full', !views[room] || room === '')
   const out = view(app, ctx, rest)
   if (typeof out === 'function') cleanup = out
   if (changed && scrollTop) {
@@ -89,7 +90,7 @@ addEventListener('hashchange', () => route(true))
 // ---------------------------------------------------------------- ask
 const dlg = document.getElementById('ask') as HTMLDialogElement
 const out = document.getElementById('ask-out')!
-const SUGGEST = ['What did I spend last Tuesday?', 'Who should I trust on sports?', 'Who owes who in my pot?', 'What did you learn about my spending?']
+const SUGGEST = ['What did I spend last Tuesday?', 'Who should I trust on sports?', 'Who owes who in my treasury?', 'What have you learned about my spending?']
 document.getElementById('ask-suggest')!.innerHTML = SUGGEST.map(s => `<button class="chip" type="button">${esc(s)}</button>`).join('')
 document.getElementById('ask-suggest')!.addEventListener('click', e => {
   const b = (e.target as HTMLElement).closest('button')
@@ -127,7 +128,7 @@ document.getElementById('ask-form')!.addEventListener('submit', async e => {
 })
 
 // ---------------------------------------------------------------- boot
-app.innerHTML = `<p class="loading">Opening your memory…</p>`
+app.innerHTML = `<p class="loading wrap">Opening your memory…</p>`
 route()
 ctx.refresh().then(() => route(false))
 setInterval(() => {

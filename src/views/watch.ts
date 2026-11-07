@@ -20,13 +20,13 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
   <section style="--c: var(--watch)">
     <div class="room-head">
       <div>
-        <span class="tag">Smart agent for real life</span>
-        <h1 class="display">Watch</h1>
-        <p class="lede">An expense watchdog with a long memory. It reads a Sui wallet through Tatum, asks only when something is odd, and turns your answers into rules.</p>
+        <span class="tag">An autonomous watch over your wallet</span>
+        <h1 class="display">Sentinel</h1>
+        <p class="lede">A spending sentinel with a permanent memory. It reads a Sui wallet through Tatum, speaks only when something is unusual, and turns your answers into rules it keeps.</p>
       </div>
       ${w?.lastScan ? `<p class="small muted">Last checked ${ago(w.lastScan)}. It will pick up from there.</p>` : ''}
     </div>
-    ${tatum === false ? `<p class="notice">The Tatum key is not set on this server yet, so wallet reading is off. Calls and Pocket still work.</p>` : ''}
+    ${tatum === false ? `<p class="notice">Wallet reading is offline at the moment. The Oracle and Treasury remain available.</p>` : ''}
     <div class="cols">
       <div>
         <form class="panel" id="addr-form" style="margin-bottom:18px">
@@ -36,7 +36,7 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
               <input id="addr" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x…" value="${esc(w?.address || '')}" />
               <button class="btn watch" type="submit">${w?.address ? 'Check for new payments' : 'Start watching'}</button>
             </div>
-            <span class="hint">Read only. Mnemora never asks for keys and never moves money.${demo && !w?.address ? ` <button class="chip" type="button" id="use-demo">Use the demo wallet</button>` : ''}</span>
+            <span class="hint">Read only. Orasentra never asks for keys and never moves money.${demo && !w?.address ? ` <button class="chip" type="button" id="use-demo">Use the demo wallet</button>` : ''}</span>
           </div>
         </form>
         ${
@@ -88,12 +88,12 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
         </div>
         <div class="panel flat">
           <h3>Repeating payments</h3>
-          <p class="sub">Found from the timing of payments. Name them and set a monthly limit in Pocket.</p>
+          <p class="sub">Found from the timing of payments. Name them and set a monthly limit in the Treasury.</p>
           ${w?.recurring?.length ? `<div class="journal">${w.recurring.map((r: any) => `<div class="entry"><div class="t">${esc(r.label)}</div><div class="s"><span>about ${usd(r.usd)} every ${r.everyDays} days</span><span>${r.count} times</span>${r.capUsd ? `<span>limit ${usd(r.capUsd)} a month</span>` : ''}</div></div>`).join('')}</div>` : `<div class="empty">None found yet. It needs at least three payments to the same place at a steady pace.</div>`}
         </div>
         <div class="panel flat">
           <h3>Ask about your spending</h3>
-          <p class="sub">Try "What did I spend last Tuesday?" Mnemora answers from the payments it has seen and from memory.</p>
+          <p class="sub">Try "What did I spend last Tuesday?" Orasentra answers from the payments it has seen and from memory.</p>
           <button class="btn ghost small" type="button" id="ask-tue">Ask it now</button>
         </div>
       </aside>
@@ -110,7 +110,7 @@ export function renderWatch(app: HTMLElement, ctx: Ctx) {
     const res = await act(btn, () => api('watch/scan', { address }))
     if (res) {
       const r = res.result
-      toast(r.firstScan ? 'Baseline set. Mnemora will compare future payments against it.' : `${r.fresh} new payments, ${r.alerts.length} to review.`)
+      toast(r.firstScan ? 'Baseline set. Orasentra will compare future payments against it.' : `${r.fresh} new payments, ${r.alerts.length} to review.`)
       ctx.apply(res, 'watch')
     }
   })

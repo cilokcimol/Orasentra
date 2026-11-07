@@ -1,6 +1,6 @@
 // Shared browser helpers: the keeper key, the API client, formatting, small UI pieces.
 
-const KEY = 'mnemora.key'
+const KEY = 'orasentra.key'
 
 export function keeperKey(): string {
   let k = ''
@@ -44,10 +44,10 @@ export class ApiError extends Error {}
 export async function api<T = any>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api/${path}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json', 'x-mnemora-key': keeperKey() },
+    headers: { 'content-type': 'application/json', 'x-orasentra-key': keeperKey() },
     body: body === undefined ? undefined : JSON.stringify(body),
   }).catch(() => null)
-  if (!res) throw new ApiError('Could not reach Mnemora. Check your connection and try again.')
+  if (!res) throw new ApiError('Could not reach Orasentra. Check your connection and try again.')
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status}).`)
   return data as T
@@ -126,7 +126,7 @@ export function spark(values: number[], w = 120, h = 28, cls = '') {
 
 export const prefersReducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export const ROOM_LABEL: Record<string, string> = { calls: 'Calls', watch: 'Watch', pocket: 'Pocket', ledger: 'Ledger' }
+export const ROOM_LABEL: Record<string, string> = { calls: 'Oracle', watch: 'Sentinel', pocket: 'Treasury', ledger: 'Archive' }
 
 /** Event bus so a new memory anywhere can ripple through the 3D core. */
 export const bus = new EventTarget()

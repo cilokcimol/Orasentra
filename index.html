@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Mnemora</title>
-    <meta name="description" content="One agent that remembers every call you make, every payment you send and every debt in your group. It learns who to trust and what is normal, and keeps the record on Walrus." />
-    <meta name="theme-color" content="#eaf1ef" />
-    <meta property="og:title" content="Mnemora" />
-    <meta property="og:description" content="Hindsight, kept. Predictions, a spending watchdog and shared money in one memory on Walrus." />
+    <title>Orasentra</title>
+    <meta name="description" content="Orasentra is a personal intelligence with a permanent memory. It forecasts with you, watches your wallet, and keeps shared money straight, learning from every outcome." />
+    <meta name="theme-color" content="#050a14" />
+    <meta property="og:title" content="Orasentra" />
+    <meta property="og:description" content="The memory that sees ahead. Forecasts, a wallet sentinel and shared money in one permanent memory." />
     <meta property="og:image" content="/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -15,28 +15,28 @@
   <body>
     <a class="skip" href="#app">Skip to content</a>
     <header class="top">
-      <a class="brand" href="#/" aria-label="Mnemora home"><span class="brand-mark" aria-hidden="true"></span>Mnemora</a>
-      <nav class="nav" aria-label="Rooms">
-        <a href="#/calls" data-r="calls">Calls</a>
-        <a href="#/watch" data-r="watch">Watch</a>
-        <a href="#/pocket" data-r="pocket">Pocket</a>
-        <a href="#/ledger" data-r="ledger">Ledger</a>
-        <a href="#/judge" data-r="judge">For judges</a>
+      <a class="brand" href="#/" aria-label="Orasentra home"><svg class="brand-mark" viewBox="0 0 22 26" aria-hidden="true"><defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaf6ff"/><stop offset=".5" stop-color="#9ad7ff"/><stop offset="1" stop-color="#52e3b0"/></linearGradient></defs><path d="M11 1 20 13 11 25 2 13Z" fill="url(#bm)" opacity=".9"/><path d="M11 1 11 25M2 13h18" stroke="#061020" stroke-width=".8" opacity=".5"/></svg>ORASENTRA</a>
+      <nav class="nav" aria-label="Main">
+        <a href="#/oracle" data-r="oracle">Oracle</a>
+        <a href="#/sentinel" data-r="sentinel">Sentinel</a>
+        <a href="#/treasury" data-r="treasury">Treasury</a>
+        <a href="#/archive" data-r="archive">Archive</a>
+        <a href="#/status" data-r="status">Status</a>
       </nav>
-      <button class="ask-btn" type="button" id="ask-open">Ask Mnemora</button>
+      <button class="ask-btn" type="button" id="ask-open">Ask Orasentra</button>
     </header>
     <main id="app" tabindex="-1"></main>
     <footer>
-      <span>Mnemora keeps its memory on Walrus mainnet and reads Sui through Tatum. Amounts on Sui are read only; Mnemora never moves money.</span>
-      <span><a href="https://github.com/cilokcimol/mnemora">Source code</a></span>
+      <span>Orasentra. Memory sealed on Walrus. Chain data from Sui through Tatum. Read only on chain: Orasentra never holds keys or moves funds.</span>
+      <span><a href="#/status">System status</a> · <a href="https://github.com/cilokcimol/orasentra">Source</a></span>
     </footer>
     <dialog class="ask" id="ask" aria-labelledby="ask-title">
       <div class="ask-in">
         <div class="row" style="justify-content: space-between">
-          <h2 id="ask-title" style="font-size: 1.4rem">Ask Mnemora</h2>
+          <h2 id="ask-title" style="font-size: 1.4rem">Ask Orasentra</h2>
           <button class="btn ghost small" type="button" id="ask-close">Close</button>
         </div>
-        <p class="muted small">Answers come from what Mnemora remembers on Walrus for you, plus numbers it can work out exactly.</p>
+        <p class="muted small">Answers are drawn from your sealed memories and from figures Orasentra can compute exactly.</p>
         <form id="ask-form">
           <label class="sr" for="ask-q">Your question</label>
           <input id="ask-q" type="text" autocomplete="off" placeholder="What did I spend last Tuesday?" required maxlength="300" />

@@ -8,7 +8,7 @@ if (!/^[a-f0-9]{32,64}$/.test(KEY)) throw new Error('Set KEY to a 32 to 64 chara
 async function call(path: string, body?: unknown) {
   const res = await fetch(`${BASE}/api/${path}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json', 'x-mnemora-key': KEY },
+    headers: { 'content-type': 'application/json', 'x-orasentra-key': KEY },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))

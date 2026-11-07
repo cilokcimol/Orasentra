@@ -14,7 +14,7 @@ const CATS = [
   ['onchain', 'SUI onchain'],
 ]
 
-const COLOR: Record<string, string> = { You: '#12292f', Market: '#6f8a91', Onchain: '#1f7fa0', Mnemora: '#c9691f' }
+const COLOR: Record<string, string> = { You: '#12292f', Market: '#6f8a91', Onchain: '#1f7fa0', Orasentra: '#c9691f' }
 const colorOf = (n: string) => COLOR[n] || '#7a4fa0'
 
 function blendPreview(ctx: Ctx, q: any) {
@@ -47,9 +47,9 @@ function onchainP(ctx: Ctx, q: any) {
 
 function drawer(ctx: Ctx, q: any) {
   const b = blendPreview(ctx, q)
-  const rows = Object.entries({ ...b.probs, Mnemora: b.blend })
+  const rows = Object.entries({ ...b.probs, Orasentra: b.blend })
     .map(
-      ([n, p]) => `<div class="voice-row"><span>${esc(n)}${n === 'Mnemora' ? '' : ` <span class="muted small">w ${(b.w[n] ?? 0).toFixed(2)}</span>`}</span><div class="bar" style="--c:${colorOf(n)}"><i style="width:${(p * 100).toFixed(1)}%"></i></div><b class="num">${pct(p)}</b></div>`,
+      ([n, p]) => `<div class="voice-row"><span>${esc(n)}${n === 'Orasentra' ? '' : ` <span class="muted small">w ${(b.w[n] ?? 0).toFixed(2)}</span>`}</span><div class="bar" style="--c:${colorOf(n)}"><i style="width:${(p * 100).toFixed(1)}%"></i></div><b class="num">${pct(p)}</b></div>`,
     )
     .join('')
   return `
@@ -59,7 +59,7 @@ function drawer(ctx: Ctx, q: any) {
       <input type="range" id="you" min="1" max="99" value="${Math.round(draft.you * 100)}" />
     </div>
     <div>
-      <p class="small muted" style="margin-bottom:6px">Add the call of someone you follow: a friend, an analyst, a tipster. Mnemora will score them too.</p>
+      <p class="small muted" style="margin-bottom:6px">Add the call of someone you follow: a friend, an analyst, a tipster. Orasentra will score them too.</p>
       <div class="friend-add">
         <label class="sr" for="fname">Name</label><input id="fname" type="text" placeholder="Name" maxlength="24" />
         <label class="sr" for="fp">Their chance in percent</label><input id="fp" type="number" min="1" max="99" placeholder="%" />
@@ -67,7 +67,7 @@ function drawer(ctx: Ctx, q: any) {
       </div>
     </div>
     <div class="voices" aria-live="polite">${rows}</div>
-    ${b.spread >= 0.2 ? `<p class="flag">Sources disagree by ${Math.round(b.spread * 100)} points. Mnemora will remember who was right.</p>` : ''}
+    ${b.spread >= 0.2 ? `<p class="flag">Sources disagree by ${Math.round(b.spread * 100)} points. Orasentra will remember who was right.</p>` : ''}
     <div class="row">
       <button class="btn calls" type="button" id="lock">Lock my call</button>
       <span class="small muted">Locked calls cannot be edited. It is written to Walrus with the time, before the result.</span>
@@ -106,17 +106,17 @@ export function renderCalls(app: HTMLElement, ctx: Ctx) {
   const pickOf = (id: string) => picks.find(p => p.qid === id)
   const openQs = qs.filter(q => q.outcome === null && q.closesAt > Date.now())
   const list = (filter === 'all' ? openQs : openQs.filter(q => q.category === filter)).sort((a, b) => a.closesAt - b.closesAt)
-  const trust: any[] = (k?.trust || []).filter((t: any) => t.name !== 'Mnemora')
-  const hc = (k?.trust || []).find((t: any) => t.name === 'Mnemora')
+  const trust: any[] = (k?.trust || []).filter((t: any) => t.name !== 'Orasentra')
+  const hc = (k?.trust || []).find((t: any) => t.name === 'Orasentra')
   const sui = ctx.board?.sui
 
   app.innerHTML = `
   <section style="--c: var(--calls)">
     <div class="room-head">
       <div>
-        <span class="tag">Markets and sports prediction</span>
-        <h1 class="display">Calls</h1>
-        <p class="lede">Make your call before the event. After it, every voice gets scored, and Mnemora learns whom to trust.</p>
+        <span class="tag">Forecasting for markets, sport and elections</span>
+        <h1 class="display">Oracle</h1>
+        <p class="lede">Lock your call before the event. Once the result is in, every voice is scored, and Orasentra learns whom to trust.</p>
       </div>
       ${sui ? `<p class="small muted">SUI ${usd(sui.usd)} on Cetus, read through Tatum. Daily volatility ${(sui.vol * 100).toFixed(1)}%.</p>` : ''}
     </div>
@@ -130,17 +130,17 @@ export function renderCalls(app: HTMLElement, ctx: Ctx) {
           <h3>Who to trust</h3>
           <p class="sub">0.50 is level with the baseline. A voice moves only after scored calls, and only by beating the market or the onchain model.</p>
           ${trust.length ? `<div class="trust">${trust.map(t => `<div class="trust-row"><div class="who"><b>${esc(t.name)}</b><span>${t.n} scored${t.n ? `, beat baseline ${t.beat}` : ''}</span></div>${spark(t.history.map((h: any) => h.cred))}<span class="score">${t.cred.toFixed(2)}</span></div>`).join('')}</div>` : `<div class="empty">No voices yet. Lock your first call and you, the market and anyone you add start at 0.50.</div>`}
-          ${hc?.n ? `<p class="small muted" style="margin-top:10px">Mnemora's own blend: ${hc.n} scored, average Brier ${hc.avgBrier.toFixed(3)}.</p>` : ''}
+          ${hc?.n ? `<p class="small muted" style="margin-top:10px">Orasentra's own blend: ${hc.n} scored, average Brier ${hc.avgBrier.toFixed(3)}.</p>` : ''}
         </div>
         <div class="panel flat">
-          <h3>Replay the crowd</h3>
-          <p class="sub">Hindcasting: Mnemora reads ten markets that already resolved, takes each price 24 hours before the close, and writes down how good the crowd really was.</p>
+          <h3>Hindcast the crowd</h3>
+          <p class="sub">Orasentra reads ten markets that already resolved, takes each price 24 hours before the close, and writes down how good the crowd really was.</p>
           <div class="chips" style="margin:0">${CATS.slice(1, 5).map(([v, l]) => `<button class="chip" type="button" data-replay="${v}">${l}</button>`).join('')}</div>
           <div id="replay-out"></div>
         </div>
         <div class="panel">
-          <h3>Your journal</h3>
-          ${picks.length ? `<div class="journal">${picks.slice(0, 12).map(p => `<div class="entry"><div class="t">${esc(p.title)}</div><div class="s"><span>You ${pct(p.probs.You)}</span>${p.probs.Market !== undefined ? `<span>Market ${pct(p.probs.Market)}</span>` : ''}${p.probs.Onchain !== undefined ? `<span>Onchain ${pct(p.probs.Onchain)}</span>` : ''}<span>Mnemora ${pct(p.probs.Mnemora)}</span>${p.scored ? `<span class="badge ${p.scored.winner === 'You' ? 'ok' : 'calls'}">Resolved ${esc(p.scored.outcome ? p.side : 'not ' + p.side)}, closest ${esc(p.scored.winner)}</span>` : `<span>Closes ${date(p.closesAt)}</span>`}</div></div>`).join('')}</div>` : `<div class="empty">Locked calls and their scorecards will appear here.</div>`}
+          <h3>Your record</h3>
+          ${picks.length ? `<div class="journal">${picks.slice(0, 12).map(p => `<div class="entry"><div class="t">${esc(p.title)}</div><div class="s"><span>You ${pct(p.probs.You)}</span>${p.probs.Market !== undefined ? `<span>Market ${pct(p.probs.Market)}</span>` : ''}${p.probs.Onchain !== undefined ? `<span>Onchain ${pct(p.probs.Onchain)}</span>` : ''}<span>Orasentra ${pct(p.probs.Orasentra)}</span>${p.scored ? `<span class="badge ${p.scored.winner === 'You' ? 'ok' : 'calls'}">Resolved ${esc(p.scored.outcome ? p.side : 'not ' + p.side)}, closest ${esc(p.scored.winner)}</span>` : `<span>Closes ${date(p.closesAt)}</span>`}</div></div>`).join('')}</div>` : `<div class="empty">Locked calls and their scorecards will appear here.</div>`}
         </div>
       </aside>
     </div>
@@ -186,7 +186,7 @@ export function renderCalls(app: HTMLElement, ctx: Ctx) {
       document.getElementById('fadd')!.addEventListener('click', () => {
         const n = (document.getElementById('fname') as HTMLInputElement).value.trim()
         const p = Number((document.getElementById('fp') as HTMLInputElement).value)
-        if (!n || !(p >= 1 && p <= 99) || ['You', 'Market', 'Onchain', 'Mnemora'].includes(n)) return
+        if (!n || !(p >= 1 && p <= 99) || ['You', 'Market', 'Onchain', 'Orasentra'].includes(n)) return
         draft.friends[n.slice(0, 24)] = p / 100
         update()
       })

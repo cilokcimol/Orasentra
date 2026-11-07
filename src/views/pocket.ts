@@ -13,7 +13,7 @@ function potView(ctx: Ctx, data: any) {
   const g = data.group
   const bal: Record<string, number> = data.balances
   const max = Math.max(1, ...Object.values(bal).map(v => Math.abs(v)))
-  const link = `${location.origin}${location.pathname}#/pocket/${g.id}`
+  const link = `${location.origin}${location.pathname}#/treasury/${g.id}`
   return `
   <div class="cols">
     <div>
@@ -66,7 +66,7 @@ function potView(ctx: Ctx, data: any) {
         <h3>What it noticed</h3>
         ${g.norms.length ? `<div class="journal">${g.norms.map((n: string) => `<div class="entry">${esc(n)}</div>`).join('')}</div>` : `<p class="sub" style="margin:0">After a few expenses it notices habits, like who usually pays for food. Each habit is written to the pot's own memory.</p>`}
       </div>
-      <a class="btn ghost" href="#/pocket">All pots and goals</a>
+      <a class="btn ghost" href="#/treasury">All treasuries and goals</a>
     </aside>
   </div>`
 }
@@ -76,12 +76,12 @@ export function renderPocket(app: HTMLElement, ctx: Ctx, rest: string[]) {
   const potId = rest[0]
   const head = (title: string, lede: string) => `
     <div class="room-head">
-      <div><span class="tag">Consumer finance</span><h1 class="display">${esc(title)}</h1><p class="lede">${esc(lede)}</p></div>
+      <div><span class="tag">Everyday money that simply makes sense</span><h1 class="display">${esc(title)}</h1><p class="lede">${esc(lede)}</p></div>
     </div>`
 
   if (potId) {
     const data = pots.get(potId)
-    app.innerHTML = `<section style="--c: var(--pocket)">${head(data?.group?.name || 'Pot', 'A shared pot that remembers who owes who. No wallet and no crypto words needed.')}${data ? potView(ctx, data) : '<p class="loading">Opening the pot…</p>'}</section>`
+    app.innerHTML = `<section style="--c: var(--pocket)">${head(data?.group?.name || 'Treasury', 'A shared treasury that remembers who owes who. No wallet and no jargon.')}${data ? potView(ctx, data) : '<p class="loading">Opening the pot…</p>'}</section>`
     if (!data) {
       loadPot(potId)
         .then(async () => {
@@ -125,30 +125,30 @@ export function renderPocket(app: HTMLElement, ctx: Ctx, rest: string[]) {
   const recurring: any[] = k?.watch?.recurring || []
   const flow = k?.watch?.cashflow
   const missing = groups.filter(id => !pots.has(id))
-  if (missing.length) Promise.all(missing.map(id => loadPot(id).catch(() => null))).then(() => location.hash.startsWith('#/pocket') && !location.hash.includes('/pocket/') && renderPocket(app, ctx, rest))
+  if (missing.length) Promise.all(missing.map(id => loadPot(id).catch(() => null))).then(() => location.hash.startsWith('#/treasury') && !location.hash.includes('/pocket/') && renderPocket(app, ctx, rest))
 
   app.innerHTML = `
   <section style="--c: var(--pocket)">
-    ${head('Pocket', 'Everyday money that feels normal. Shared pots, savings that follow your real cash flow, and subscription limits it learns from you.')}
+    ${head('Treasury', 'Shared spending, savings that follow your real cash flow, and subscription limits it learns from you. No wallet and no jargon.')}
     <div class="cols">
       <div>
-        <h3 style="margin-bottom:10px">Shared pots</h3>
+        <h3 style="margin-bottom:10px">Shared treasuries</h3>
         ${groups.length ? `<div class="pots" style="margin-bottom:16px">${groups.map(id => {
           const d = pots.get(id)
           const open = d ? d.plan.length : null
-          return `<a class="pot-link" href="#/pocket/${esc(id)}"><span>${esc(d?.group?.name || 'Loading…')}</span><span class="small muted">${d ? `${d.group.members.length} people · ${open ? `${open} to settle` : 'square'}` : ''}</span></a>`
+          return `<a class="pot-link" href="#/treasury/${esc(id)}"><span>${esc(d?.group?.name || 'Loading…')}</span><span class="small muted">${d ? `${d.group.members.length} people · ${open ? `${open} to settle` : 'square'}` : ''}</span></a>`
         }).join('')}</div>` : ''}
         <form class="panel" id="pot-form">
-          <h3>Start a pot</h3>
+          <h3>Open a shared treasury</h3>
           <p class="sub">For a trip, a flat or a dinner club. You will get a link to share.</p>
           <div class="field"><label for="pname">Name</label><input id="pname" type="text" maxlength="28" placeholder="Bali trip" required /></div>
           <div class="field" style="margin-top:10px"><label for="pmem">People, separated by commas</label><input id="pmem" type="text" maxlength="200" placeholder="Vika, Rina, Budi" required /></div>
           <div class="field" style="margin-top:10px"><label for="pcur">Currency</label><select id="pcur"><option>IDR</option><option>USD</option><option>SGD</option><option>EUR</option></select></div>
-          <button class="btn pocket" type="submit" style="margin-top:14px">Start the pot</button>
+          <button class="btn pocket" type="submit" style="margin-top:14px">Open it</button>
         </form>
 
         <h3 style="margin:30px 0 10px">Savings goals</h3>
-        ${flow ? `<p class="small muted" style="margin-bottom:10px">From the wallet in Watch, last 30 days: in ${usd(flow.inflow)}, out ${usd(flow.outflow)}. Plans use this.</p>` : `<p class="small muted" style="margin-bottom:10px">Watch a wallet and goals will adapt to its real cash flow. Without it, plans split the amount evenly.</p>`}
+        ${flow ? `<p class="small muted" style="margin-bottom:10px">From the wallet in the Sentinel, last 30 days: in ${usd(flow.inflow)}, out ${usd(flow.outflow)}. Plans use this.</p>` : `<p class="small muted" style="margin-bottom:10px">Watch a wallet in the Sentinel and goals will adapt to its real cash flow. Without it, plans split the amount evenly.</p>`}
         <div class="journal">${goals
           .map((g: any) => {
             const pctDone = Math.min(100, (g.saved / g.target) * 100)
@@ -168,12 +168,12 @@ export function renderPocket(app: HTMLElement, ctx: Ctx, rest: string[]) {
       <aside class="side">
         <div class="panel">
           <h3>Subscriptions</h3>
-          <p class="sub">Repeating payments Watch found. Set what each one is allowed to cost a month and Mnemora remembers it.</p>
+          <p class="sub">Repeating payments the Sentinel found. Set what each one is allowed to cost a month and Orasentra remembers it.</p>
           ${recurring.length ? `<div class="journal">${recurring.map((r: any) => {
             const monthly = (r.usd * 30) / r.everyDays
             const over = r.capUsd && monthly > r.capUsd
             return `<div class="entry" data-sub="${esc(r.counterparty)}"><div class="t">${esc(r.label)} ${over ? '<span class="badge watch">over limit</span>' : r.capUsd ? '<span class="badge ok">within limit</span>' : ''}</div><div class="s"><span>about ${usd(monthly)} a month</span>${r.capUsd ? `<span>limit ${usd(r.capUsd)}</span>` : ''}</div><div class="row" style="margin-top:8px"><label class="sr" for="cap-${esc(r.counterparty)}">Monthly limit</label><input id="cap-${esc(r.counterparty)}" type="number" min="1" placeholder="Limit $" style="max-width:120px;min-height:36px" /><button class="btn small ghost" data-cap>Set limit</button></div></div>`
-          }).join('')}</div>` : `<div class="empty">None yet. Watch a wallet first; repeating payments show up here.</div>`}
+          }).join('')}</div>` : `<div class="empty">None yet. Watch a wallet in the Sentinel first; repeating payments appear here.</div>`}
         </div>
       </aside>
     </div>
@@ -192,7 +192,7 @@ export function renderPocket(app: HTMLElement, ctx: Ctx, rest: string[]) {
     )
     if (res) {
       ctx.apply(res, 'pocket')
-      location.hash = `#/pocket/${res.result.id}`
+      location.hash = `#/treasury/${res.result.id}`
     }
   })
   app.querySelector('#goal-form')!.addEventListener('submit', async e => {

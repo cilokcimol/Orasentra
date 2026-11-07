@@ -28,23 +28,23 @@ export interface Group {
 }
 
 const rid = () => randomBytes(5).toString('hex')
-export const groupNs = (id: string) => `mn-g-${id}`
+export const groupNs = (id: string) => `os-g-${id}`
 const clean = (s: string, n = 28) => s.replace(/[^\p{L}\p{N} .,&'()_]/gu, '').trim().slice(0, n)
 
 export async function loadGroup(id: string): Promise<Group> {
-  if (!/^[a-f0-9]{10}$/.test(id)) throw new HttpError(400, 'That pot link is not valid.')
+  if (!/^[a-f0-9]{10}$/.test(id)) throw new HttpError(400, 'That treasury link is not valid.')
   const g = await read<Group | null>(`g/${id}.json`, null)
-  if (!g) throw new HttpError(404, 'That pot does not exist.')
+  if (!g) throw new HttpError(404, 'That treasury does not exist.')
   return g
 }
 
 export async function createGroup(k: Keeper, name: string, currency: string, members: string[]) {
   const ms = [...new Set(members.map(m => clean(m, 20)).filter(Boolean))].slice(0, 12)
-  if (ms.length < 2) throw new HttpError(400, 'A pot needs at least two people.')
+  if (ms.length < 2) throw new HttpError(400, 'A shared treasury needs at least two people.')
   const g: Group = { id: rid(), name: clean(name) || 'Shared pot', currency: clean(currency, 4).toUpperCase() || 'IDR', members: ms, expenses: [], settlements: [], norms: [], created: Date.now() }
   await write(`g/${g.id}.json`, g)
   if (!k.pocket.groups.includes(g.id)) k.pocket.groups.push(g.id)
-  const rec = await remember(groupNs(g.id), 'pocket', 'pot', `Pot "${g.name}" started with ${ms.join(', ')}. Amounts are in ${g.currency}.`)
+  const rec = await remember(groupNs(g.id), 'pocket', 'pot', `Shared treasury "${g.name}" opened with ${ms.join(', ')}. Amounts are in ${g.currency}.`)
   k.memoryIds.push(rec.id)
   return g
 }
@@ -107,7 +107,7 @@ export async function addExpense(k: Keeper, id: string, text: string) {
   }
   await write(`g/${g.id}.json`, g)
   const owes = plan.map(p => `${p.from} owes ${p.to} ${money(p.amount, g.currency)}`).join('; ') || 'everyone is square'
-  const rec = await remember(groupNs(g.id), 'pocket', 'expense', `${e.payer} paid ${money(e.amount, g.currency)} for ${e.desc}, split between ${e.split.join(', ')}. Pot "${g.name}" now: ${owes}.${norm ? ' Pattern noticed: ' + norm : ''}`)
+  const rec = await remember(groupNs(g.id), 'pocket', 'expense', `${e.payer} paid ${money(e.amount, g.currency)} for ${e.desc}, split between ${e.split.join(', ')}. Treasury "${g.name}" now: ${owes}.${norm ? ' Pattern noticed: ' + norm : ''}`)
   k.memoryIds.push(rec.id)
   if (norm) learn(k, 'pocket', norm)
   return { group: g, expense: e, balances: bal, plan, memory: rec }
@@ -119,7 +119,7 @@ export async function settle(k: Keeper, id: string, from: string, to: string, am
   g.settlements.push({ from, to, amount, at: Date.now() })
   await write(`g/${g.id}.json`, g)
   const plan = settleUp(balances(g))
-  const rec = await remember(groupNs(g.id), 'pocket', 'settle', `${from} paid back ${to} ${money(amount, g.currency)} in pot "${g.name}". Still open: ${plan.map(p => `${p.from} owes ${p.to} ${money(p.amount, g.currency)}`).join('; ') || 'nothing, everyone is square'}.`)
+  const rec = await remember(groupNs(g.id), 'pocket', 'settle', `${from} paid back ${to} ${money(amount, g.currency)} in treasury "${g.name}". Still open: ${plan.map(p => `${p.from} owes ${p.to} ${money(p.amount, g.currency)}`).join('; ') || 'nothing, everyone is square'}.`)
   k.memoryIds.push(rec.id)
   return { group: g, balances: balances(g), plan, memory: rec }
 }

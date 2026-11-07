@@ -1,11 +1,11 @@
-// A keeper is one person using Mnemora. No account: the browser holds a secret keeper key,
+// A keeper is one person using Orasentra. No account: the browser holds a secret keeper key,
 // the server only ever sees its hash. The same key on another device opens the same memory.
 
 import { createHash } from 'node:crypto'
 import { read, write } from './store.js'
 
 export interface VoiceStats {
-  kind: 'you' | 'market' | 'onchain' | 'mnemora' | 'friend'
+  kind: 'you' | 'market' | 'onchain' | 'orasentra' | 'friend'
   n: number
   brierSum: number
   baseSum: number
@@ -93,8 +93,8 @@ export interface Goal {
   plan: { t: number; weekly: number; why: string }[]
 }
 
-export const keeperHash = (secret: string) => createHash('sha256').update(`mnemora:${secret}`).digest('hex').slice(0, 24)
-export const keeperNs = (hash: string) => `mn-${hash}`
+export const keeperHash = (secret: string) => createHash('sha256').update(`orasentra:${secret}`).digest('hex').slice(0, 24)
+export const keeperNs = (hash: string) => `os-${hash}`
 
 const fresh = (id: string): Keeper => ({
   id,
@@ -110,7 +110,7 @@ const fresh = (id: string): Keeper => ({
 })
 
 export function keeperFrom(req: Request): string {
-  const secret = req.headers.get('x-mnemora-key') || ''
+  const secret = req.headers.get('x-orasentra-key') || ''
   if (!/^[a-f0-9]{32,64}$/.test(secret)) throw new HttpError(401, 'Missing keeper key. Reload the page to create one.')
   return keeperHash(secret)
 }

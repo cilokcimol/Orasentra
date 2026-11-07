@@ -1,6 +1,6 @@
 import type { Ctx } from '../main'
 import { esc, ago, date, keeperKey, useKey, toast, ROOM_LABEL } from '../lib'
-import { mountCore, type CoreHandle } from '../core3d'
+import { mountRelic as mountCore, type RelicHandle as CoreHandle } from '../relic3d'
 import { bandsFrom } from './home'
 
 let core: CoreHandle | null = null
@@ -34,23 +34,23 @@ export function renderLedger(app: HTMLElement, ctx: Ctx) {
   app.innerHTML = `
   <section data-view="ledger">
     <div class="room-head" style="--c: var(--melt)">
-      <div><span class="tag">How it learned over time</span><h1 class="display">Ledger</h1><p class="lede">Everything Mnemora has remembered for you, in order, with a link to each memory on Walrus. This is the record it leans on.</p></div>
+      <div><span class="tag">How it learned over time</span><h1 class="display">Archive</h1><p class="lede">Everything Orasentra has remembered for you, in order, each with a link to its sealed record on Walrus. This is the record it leans on.</p></div>
       <p class="small muted">${mems.length} memories in your namespace, ${stored} confirmed on Walrus.</p>
     </div>
     <div class="cols">
       <div>
         <div class="panel" style="margin-bottom:18px">
           <h3>Trust over time</h3>
-          <p class="sub">How much Mnemora relies on each voice in Calls, after every scored result.</p>
+          <p class="sub">How much Orasentra relies on each voice in the Oracle, after every scored result.</p>
           ${trustChart(k?.trust || [])}
         </div>
         <h3 style="margin-bottom:6px">What it learned</h3>
         ${learned.length ? `<ol class="timeline" style="margin-bottom:26px">${learned.map(l => `<li style="--c:${ROOM_C[l.room] || 'var(--melt)'}"><span class="when">${date(l.t)}</span><span class="dot"></span><div class="what">${esc(l.text)}<div class="meta"><span>${esc(ROOM_LABEL[l.room] || l.room)}</span></div></div></li>`).join('')}</ol>` : `<div class="empty" style="margin-bottom:26px">Lessons appear here as results come in, rules form and plans change.</div>`}
         <h3 style="margin-bottom:6px">Every memory</h3>
-        ${mems.length ? `<ol class="timeline">${mems.map(m => `<li style="--c:${ROOM_C[m.room] || 'var(--melt)'}"><span class="when">${ago(m.at)}</span><span class="dot"></span><div class="what">${esc(m.text)}<div class="meta"><span>${esc(ROOM_LABEL[m.room] || m.room)} · ${esc(m.kind)}</span>${m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">Walrus blob <span class="mono">${esc(m.blobId.slice(0, 10))}…</span></a>` : m.status === 'failed' ? `<span class="badge watch">not stored: ${esc(m.error || 'error')}</span>` : `<span class="badge">${m.mode === 'mock' ? 'local test mode' : 'writing to Walrus'}</span>`}</div></div></li>`).join('')}</ol>` : `<div class="empty">No memories yet. Make a call, watch a wallet or add to a pot.</div>`}
+        ${mems.length ? `<ol class="timeline">${mems.map(m => `<li style="--c:${ROOM_C[m.room] || 'var(--melt)'}"><span class="when">${ago(m.at)}</span><span class="dot"></span><div class="what">${esc(m.text)}<div class="meta"><span>${esc(ROOM_LABEL[m.room] || m.room)} · ${esc(m.kind)}</span>${m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">Walrus blob <span class="mono">${esc(m.blobId.slice(0, 10))}…</span></a>` : m.status === 'failed' ? `<span class="badge watch">not stored: ${esc(m.error || 'error')}</span>` : `<span class="badge">${m.mode === 'mock' ? 'local test mode' : 'writing to Walrus'}</span>`}</div></div></li>`).join('')}</ol>` : `<div class="empty">No memories yet. Make a call, watch a wallet or add a shared expense.</div>`}
       </div>
       <aside class="side">
-        <div class="stage" id="lstage" style="min-height:420px"><div class="tip" id="ltip" hidden></div><p class="stage-title">Your memory core</p></div>
+        <div class="mini-stage" id="lstage"><div class="tip" id="ltip" hidden></div><span class="cap">Your memories, orbiting the relic</span></div>
         <div class="keybox">
           <b>Your memory key</b>
           <p class="small" style="color:#b9d5dc">This key names your memory. Keep it private. Paste it on another device to pick up where you left off.</p>
@@ -65,8 +65,8 @@ export function renderLedger(app: HTMLElement, ctx: Ctx) {
     </div>
   </section>`
   core?.destroy()
-  core = mountCore(app.querySelector('#lstage')!, { tall: true, tooltip: app.querySelector('#ltip') as HTMLElement })
-  core.setBands(bandsFrom({ ...ctx, health: null } as Ctx))
+  core = mountCore(app.querySelector("#lstage")!, { compact: true, tooltip: app.querySelector('#ltip') as HTMLElement })
+  core.setShards(bandsFrom({ ...ctx, health: null } as Ctx))
   app.querySelector('#copykey')!.addEventListener('click', () => navigator.clipboard?.writeText(keeperKey()).then(() => toast('Key copied. Treat it like a password.')))
   app.querySelector('#usekey')!.addEventListener('submit', e => {
     e.preventDefault()
