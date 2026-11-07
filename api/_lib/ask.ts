@@ -3,7 +3,8 @@
 import { env } from './env.js'
 import { recall, type Recalled } from './memory.js'
 import { keeperNs, type Keeper } from './keeper.js'
-import { groupNs } from './pocket.js'
+import { balances, groupNs, loadGroup } from './pocket.js'
+import { settleUp } from './score.js'
 import { spendingOn } from './watch.js'
 import { trustTable } from './calls.js'
 
@@ -67,12 +68,21 @@ export async function ask(k: Keeper, question: string) {
     const t = trustTable(k).filter(v => v.n > 0)
     facts.push(t.length ? `Trust table: ${t.map(v => `${v.name} ${v.cred.toFixed(2)} after ${v.n} scored calls`).join('; ')}.` : 'No calls have been scored yet, so everyone starts level at 0.50.')
   }
+  if (/owe|owes|debt|settle|balance|treasury|pot|split|utang|hutang|bayar|patungan/i.test(q) && k.pocket.groups.length) {
+    const groups = await Promise.all(k.pocket.groups.slice(0, 4).map(id => loadGroup(id).catch(() => null)))
+    for (const g of groups) {
+      if (!g) continue
+      const fmt = (n: number) => `${g.currency} ${Math.round(n).toLocaleString('en-US')}`
+      const plan = settleUp(balances(g))
+      facts.push(`Treasury "${g.name}" right now (${g.expenses.length} expenses): ${plan.map(p => `${p.from} owes ${p.to} ${fmt(p.amount)}`).join('; ') || 'everyone is square'}.`)
+    }
+  }
   const namespaces = [keeperNs(k.id), ...k.pocket.groups.map(groupNs)].slice(0, 4)
   const found = (await Promise.all(namespaces.map(ns => recall(ns, q, 5).catch(() => [] as Recalled[])))).flat()
   const memories = found.sort((a, b) => a.distance - b.distance).slice(0, 6)
 
   const llm = await gemini(
-    `You are Orasentra, a calm money and forecasting assistant with long term memory. Answer the user's question in at most 4 short sentences, in the user's language. Use only the facts and memories below. If they do not answer it, say what you would need. No emoji.\n\nQuestion: ${q}\n\nComputed facts:\n${facts.join('\n') || 'none'}\n\nMemories from Walrus:\n${memories.map((m, i) => `${i + 1}. ${m.text}`).join('\n') || 'none'}`,
+    `You are Orasentra, a calm money and forecasting assistant with long term memory. Answer the user's question in at most 4 short sentences, in the user's language. Use only the facts and memories below. Computed facts are current and override older memories. If they do not answer it, say what you would need. No emoji.\n\nQuestion: ${q}\n\nComputed facts:\n${facts.join('\n') || 'none'}\n\nMemories from Walrus:\n${memories.map((m, i) => `${i + 1}. ${m.text}`).join('\n') || 'none'}`,
   )
   const answer =
     llm ||
