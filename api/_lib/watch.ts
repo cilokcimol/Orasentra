@@ -7,7 +7,7 @@ import { HttpError, keeperNs, learn, type Keeper, type WatchAlert, type WatchTx 
 
 const isSui = (t: string) => /::sui::SUI$/.test(t)
 const isUsdc = (t: string) => /::usdc::USDC$/i.test(t)
-const short = (a: string) => (a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a)
+const short = (a: string) => (a === 'contract' ? 'an app contract' : a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a)
 const usd = (n: number) => `$${n.toFixed(n >= 100 ? 0 : 2)}`
 const rid = () => Math.random().toString(36).slice(2, 10)
 
