@@ -56,7 +56,7 @@ async function blobWrite(path: string, value: unknown, etag?: string | null) {
       addRandomSuffix: false,
       allowOverwrite: true,
       cacheControlMaxAge: 60,
-      ...(etag ? { ifMatch: etag } : {}),
+      ...(etag && process.env.BLOB_IF_MATCH ? { ifMatch: etag } : {}),
     } as never)
     return (res as unknown as { etag?: string }).etag
   } catch (e) {
