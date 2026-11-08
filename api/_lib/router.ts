@@ -65,6 +65,11 @@ export async function handle(req: Request): Promise<Response> {
       const [mem, s, t] = await Promise.all([memoryHealth(), memoryStats(), read('tatum/stats.json', { total: 0 })])
       return json({ memory: mem, memoryMode: memoryMode(), tatum: tatumReady(), tatumCalls: t, tatumMethods: tatumMethods(), llm: Boolean(env.geminiKey), demoAddress: env.demoAddress || null, demoKey: /^[a-f0-9]{32,64}$/.test(env.demoKey) ? env.demoKey : null, stats: publicStats(s) })
     }
+    if (path === 'cron') {
+      // Called by the scheduled job right after each UTC midnight, so SUI questions settle on time.
+      const b = await calls.board(true)
+      return json({ ok: true, open: b.questions.filter(q => q.outcome === null).length })
+    }
     if (path === 'board') {
       const b = await calls.board()
       const price = await calls.samplePrice()

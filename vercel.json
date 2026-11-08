@@ -25,5 +25,11 @@
       "includeFiles": "proto/**",
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "2 0 * * *"
+    }
+  ]
 }

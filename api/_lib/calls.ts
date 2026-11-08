@@ -128,7 +128,11 @@ export async function board(force = false): Promise<Board> {
     b.questions = b.questions.filter(q => q.outcome === null || (q.resolvedAt || 0) > Date.now() - 45 * DAY)
     b.updatedAt = Date.now()
   })
-  await resolveDue(next, price?.usd)
+  try {
+    await resolveDue(next, price?.usd)
+  } catch (e) {
+    console.error('resolve failed', e)
+  }
   return read<Board>(BOARD, next)
 }
 
@@ -138,12 +142,17 @@ async function resolveDue(b: Board, usd?: number) {
   const results = await Promise.all(
     due.map(async q => {
       if (q.source === 'onchain') {
-        if (!usd || !q.line) return null
-        const late = Math.round((Date.now() - q.closesAt) / 60000)
+        if (!q.line) return null
+        // Prefer the first pool reading taken after the close; fall back to the current reading.
+        const series = await read<{ t: number; usd: number }[]>(PRICES, [], 20000)
+        const after = series.find(s => s.t >= q.closesAt)
+        const at = after ? after.usd : usd
+        if (!at) return null
+        const late = Math.round(((after ? after.t : Date.now()) - q.closesAt) / 60000)
         return {
           id: q.id,
-          outcome: (usd > q.line ? 1 : 0) as 0 | 1,
-          resolution: `SUI read at $${usd.toFixed(4)} from the Cetus pool through Tatum, ${late} minutes after the close.`,
+          outcome: (at > q.line ? 1 : 0) as 0 | 1,
+          resolution: `SUI read at $${at.toFixed(4)} from the Cetus pool through Tatum, ${late} minutes after the close.`,
         }
       }
       const m = await pm.market(q.marketId!).catch(() => null)
@@ -151,6 +160,7 @@ async function resolveDue(b: Board, usd?: number) {
       return o === null ? null : { id: q.id, outcome: o, resolution: `Polymarket settled ${o ? q.side : q.other}.` }
     }),
   )
+  console.log('resolve', due.length, 'due,', results.filter(Boolean).map(r => `${r!.id}=${r!.outcome}`).join(' ') || 'none settled yet', 'price', usd)
   await update<Board>(BOARD, b, d => {
     for (const r of results) {
       if (!r) continue
