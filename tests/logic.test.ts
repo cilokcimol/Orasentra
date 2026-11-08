@@ -120,3 +120,18 @@ describe('keeper merge', () => {
     expect(m.memoryIds).toEqual(['m1', 'm9'])
   })
 })
+
+import { detectRecurring } from '../api/_lib/watch.js'
+
+describe('repeating payments', () => {
+  const day = 86400000
+  const tx = (i: number, who: string, usd: number, gap: number) => ({ digest: `${who}${i}`, t: 1_700_000_000_000 + i * gap * day, usd, dir: 'out' as const, counterparty: who, coin: 'SUI', amount: usd })
+  it('finds a monthly payment and ignores irregular ones', () => {
+    const txs = [...[0, 1, 2, 3].map(i => tx(i, '0xstream', 9.99, 30)), tx(0, '0xfriend', 20, 1), tx(1, '0xfriend', 5, 9), tx(2, '0xfriend', 40, 40)]
+    const k: any = { watch: { txs, recurring: [], labels: { '0xstream': 'Streaming' } } }
+    const found = detectRecurring(k)
+    expect(found.map(r => r.label)).toEqual(['Streaming'])
+    expect(found[0].everyDays).toBe(30)
+    expect(found[0].usd).toBeCloseTo(9.99)
+  })
+})

@@ -51,7 +51,7 @@ function limitFor(k: Keeper, who: string): number | null {
   return r ? r.limitUsd : null
 }
 
-function detectRecurring(k: Keeper) {
+export function detectRecurring(k: Keeper) {
   const outs = k.watch.txs.filter(t => t.dir === 'out' && t.usd >= 0.5 && t.counterparty !== 'contract')
   const by = new Map<string, WatchTx[]>()
   for (const t of outs) by.set(t.counterparty, [...(by.get(t.counterparty) || []), t])
@@ -98,7 +98,10 @@ export async function scan(k: Keeper, address?: string) {
       const known = k.watch.txs.some(x => x.counterparty === t.counterparty)
       const name = k.watch.labels[t.counterparty] || short(t.counterparty)
       let a: WatchAlert | null = null
-      if (lim !== null && t.usd > lim) a = { id: rid(), digest: t.digest, t: t.t, kind: 'over_limit', usd: t.usd, counterparty: t.counterparty, status: 'open', text: `${usd(t.usd)} to ${name} is over the ${usd(lim)} you set for it.` }
+      const sub = k.watch.recurring.find(r => r.counterparty === t.counterparty && r.capUsd)
+      const subMonthly = sub ? (Math.max(sub.usd, t.usd) * 30) / sub.everyDays : 0
+      if (sub && subMonthly > sub.capUsd!) a = { id: rid(), digest: t.digest, t: t.t, kind: 'over_limit', usd: t.usd, counterparty: t.counterparty, status: 'open', text: `${usd(t.usd)} to ${name}, a repeating payment, now runs about ${usd(subMonthly)} a month, over the ${usd(sub.capUsd!)} monthly limit you set.` }
+      else if (lim !== null && t.usd > lim) a = { id: rid(), digest: t.digest, t: t.t, kind: 'over_limit', usd: t.usd, counterparty: t.counterparty, status: 'open', text: `${usd(t.usd)} to ${name} is over the ${usd(lim)} you set for it.` }
       else if (lim === null && t.usd >= 5 && history.length >= 3 && t.usd > 3 * median(history)) a = { id: rid(), digest: t.digest, t: t.t, kind: 'spike', usd: t.usd, counterparty: t.counterparty, status: 'open', text: `${usd(t.usd)} to ${name} is more than three times your usual payment of ${usd(median(history))}.` }
       else if (lim === null && !known && t.usd >= 5) a = { id: rid(), digest: t.digest, t: t.t, kind: 'new_payee', usd: t.usd, counterparty: t.counterparty, status: 'open', text: `First payment to ${name}: ${usd(t.usd)}. Is this someone you pay often?` }
       if (a) alerts.push(a)
