@@ -2,6 +2,7 @@
 // Walrus Memory is the long term record; this store is the fast working copy the UI reads.
 // Reads bypass the CDN and writes use ETag preconditions, so parallel requests never lose updates.
 
+import { waitUntil } from '@vercel/functions'
 import { env } from './env.js'
 
 type Doc = Record<string, unknown>
@@ -127,7 +128,13 @@ export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T
       try {
         return await fn()
       } finally {
-        await del(path, { token: env.blobToken } as never).catch(() => {})
+        // Release in the background: the work is saved, only the marker remains.
+        const release = del(path, { token: env.blobToken } as never).catch(() => {})
+        try {
+          waitUntil(release)
+        } catch {
+          void release
+        }
       }
     }
   }

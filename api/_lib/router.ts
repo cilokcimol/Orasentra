@@ -87,9 +87,8 @@ export async function handle(req: Request): Promise<Response> {
 
     switch (path) {
       case 'state': {
-        await calls.board().catch(() => null)
+        const [, s] = await Promise.all([calls.board().catch(() => null), settleMemories().catch(() => memoryStats())])
         const scored = await calls.scorePicks(k)
-        const s = await settleMemories().catch(() => memoryStats())
         // Opening a page changes nothing unless a call was just scored, so only then is the keeper saved.
         const saved = scored.length ? await saveKeeper(k) : k
         return json({ keeper: view(saved), scored, memories: myMemories(saved, s.recent), stats: publicStats(s) })
