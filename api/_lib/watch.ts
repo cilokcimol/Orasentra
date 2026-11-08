@@ -84,7 +84,8 @@ export async function scan(k: Keeper, address?: string) {
   const sample = await samplePrice()
   if (!sample) throw new HttpError(503, 'The SUI price is not available right now. Try again in a minute.')
   const price = sample.usd
-  const recent = await recentTxs(me, 60)
+  // Many transactions only touch objects the wallet owns; read deep enough to find the real payments.
+  const recent = await recentTxs(me, 250)
   const seen = new Set(k.watch.txs.map(t => t.digest))
   const all = recent
     .map(tx => toWatchTx(tx, me, price))
