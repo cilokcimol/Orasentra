@@ -1,7 +1,8 @@
 // Watch: an expense watchdog for a Sui wallet. Reads payments through Tatum, learns what is normal
 // for you from your answers, and picks up exactly where it left off next time.
 
-import { recentTxs, suiPrice, tatumReady, type SuiTx } from './tatum.js'
+import { recentTxs, tatumReady, type SuiTx } from './tatum.js'
+import { samplePrice } from './calls.js'
 import { remember } from './memory.js'
 import { HttpError, keeperNs, learn, type Keeper, type WatchAlert, type WatchTx } from './keeper.js'
 
@@ -79,7 +80,10 @@ export async function scan(k: Keeper, address?: string) {
   }
   const me = k.watch.address
   if (!me) throw new HttpError(400, 'Add a Sui address to watch first.')
-  const { usd: price } = await suiPrice()
+  // The pool price is sampled at most every ten minutes and shared, which keeps gateway calls low.
+  const sample = await samplePrice()
+  if (!sample) throw new HttpError(503, 'The SUI price is not available right now. Try again in a minute.')
+  const price = sample.usd
   const recent = await recentTxs(me, 60)
   const seen = new Set(k.watch.txs.map(t => t.digest))
   const all = recent
@@ -107,6 +111,26 @@ export async function scan(k: Keeper, address?: string) {
       if (a) alerts.push(a)
     }
   }
+  // One alert per payee per check: the largest payment speaks for the rest, so a busy wallet does not flood the page.
+  const grouped = new Map<string, { a: WatchAlert; n: number }>()
+  for (const a of alerts) {
+    const g = grouped.get(a.counterparty)
+    if (!g) grouped.set(a.counterparty, { a, n: 1 })
+    else {
+      g.n += 1
+      if (a.usd > g.a.usd) g.a = a
+    }
+  }
+  const allAlerts = alerts.length
+  alerts.length = 0
+  for (const { a, n } of [...grouped.values()].sort((x, y) => y.a.usd - x.a.usd)) {
+    if (n > 1) a.text += ` ${n - 1} more payment${n > 2 ? 's' : ''} to the same payee in this check.`
+    alerts.push(a)
+  }
+  const shown = alerts.splice(0, 6)
+  const hidden = alerts.length
+  alerts.length = 0
+  alerts.push(...shown)
   k.watch.txs = [...fresh.reverse(), ...k.watch.txs].sort((a, b) => b.t - a.t).slice(0, 300)
   k.watch.alerts = [...alerts, ...k.watch.alerts]
   const before = new Set(k.watch.recurring.map(r => r.counterparty))
@@ -122,7 +146,7 @@ export async function scan(k: Keeper, address?: string) {
     text = `Started watching Sui wallet ${short(me)} through Tatum. Baseline: ${outsAll.length} outgoing and ${k.watch.txs.length - outsAll.length} incoming payments on record, median outgoing ${usd(median(outsAll.map(t => t.usd)))}, ${usd(spent7)} out in the last 7 days. SUI was ${usd(price)}.`
   } else {
     const since = new Date(prevScan!).toUTCString().slice(0, 22)
-    text = `Picked up where I left off (${since} UTC). ${fresh.length} new payments since then, ${alerts.length} worth asking about. ${usd(spent7)} out in the last 7 days.`
+    text = `Picked up where I left off (${since} UTC). ${fresh.length} new payments since then, ${allAlerts} worth asking about${hidden ? `, shown as the ${alerts.length} largest payees` : ''}. ${usd(spent7)} out in the last 7 days.`
   }
   if (newRecurring.length) text += ` Found repeating payments: ${newRecurring.map(r => `${r.label} about ${usd(r.usd)} every ${r.everyDays} days`).join('; ')}.`
   if (firstScan || fresh.length || newRecurring.length) {

@@ -57,21 +57,25 @@ const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 /** Writes one memory. Returns quickly with a pending record; the blob id is filled in by settle(). */
 export async function remember(ns: string, room: Room, kind: string, text: string): Promise<MemoryRecord> {
   const rec: MemoryRecord = { id: rid(), ns, room, kind, text: text.slice(0, 1500), at: Date.now(), status: 'pending', mode: memoryMode() }
-  try {
-    const job = await memwal().remember(rec.text, ns)
-    rec.jobId = job.job_id
-  } catch (e) {
-    rec.status = 'failed'
-    rec.error = String((e as Error)?.message || e).slice(0, 200)
-  }
-  // The shared counter is bookkeeping: finish it after the response so the person is not kept waiting.
-  later(update<MemoryStats>(STATS, emptyStats(), s => {
-    s.total += rec.status === 'failed' ? 0 : 1
-    s.byRoom[room] = (s.byRoom[room] || 0) + (rec.status === 'failed' ? 0 : 1)
-    s.recent.unshift(rec)
-    s.recent = s.recent.slice(0, 400)
-    if (!s.namespaces.includes(ns)) s.namespaces.push(ns)
-  }))
+  // The page gets its answer at once; the write to Walrus and the shared log finish right after the response.
+  later(
+    (async () => {
+      try {
+        const job = await memwal().remember(rec.text, ns)
+        rec.jobId = job.job_id
+      } catch (e) {
+        rec.status = 'failed'
+        rec.error = String((e as Error)?.message || e).slice(0, 200)
+      }
+      await update<MemoryStats>(STATS, emptyStats(), s => {
+        s.total += rec.status === 'failed' ? 0 : 1
+        s.byRoom[room] = (s.byRoom[room] || 0) + (rec.status === 'failed' ? 0 : 1)
+        s.recent.unshift(rec)
+        s.recent = s.recent.slice(0, 400)
+        if (!s.namespaces.includes(ns)) s.namespaces.push(ns)
+      })
+    })(),
+  )
   return rec
 }
 

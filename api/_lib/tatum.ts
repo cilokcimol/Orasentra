@@ -67,7 +67,29 @@ async function meta() {
   return m
 }
 
+const busy = (e: unknown) => /429|RESOURCE_EXHAUSTED|rate/i.test(String((e as Error)?.message || e))
+const pause = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/** The gateway allows a few requests a second; when it says slow down, wait and try again. */
+async function retry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn()
+    } catch (e) {
+      if (!busy(e) || attempt >= 5) {
+        if (busy(e)) throw new TatumError('The Sui gateway is busy right now. Try again in a few seconds.')
+        throw e
+      }
+      await pause(400 * 2 ** attempt + Math.random() * 400)
+    }
+  }
+}
+
 function unary<T>(svc: 'ledger' | 'state', method: string, req: object, timeoutMs = 12000): Promise<T> {
+  return retry(() => unaryOnce<T>(svc, method, req, timeoutMs))
+}
+
+function unaryOnce<T>(svc: 'ledger' | 'state', method: string, req: object, timeoutMs = 12000): Promise<T> {
   if (!env.tatumKey) return Promise.reject(new TatumError('TATUM_API_KEY is not set'))
   return connect().then(async c => {
     const md = await meta()
@@ -81,6 +103,10 @@ function unary<T>(svc: 'ledger' | 'state', method: string, req: object, timeoutM
 }
 
 function stream<T>(svc: 'ledger' | 'state', method: string, req: object, max: number, timeoutMs = 15000): Promise<T[]> {
+  return retry(() => streamOnce<T>(svc, method, req, max, timeoutMs))
+}
+
+function streamOnce<T>(svc: 'ledger' | 'state', method: string, req: object, max: number, timeoutMs = 15000): Promise<T[]> {
   if (!env.tatumKey) return Promise.reject(new TatumError('TATUM_API_KEY is not set'))
   return connect().then(async c => {
     const md = await meta()
